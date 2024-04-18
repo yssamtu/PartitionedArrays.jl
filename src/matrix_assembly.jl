@@ -1,15 +1,5 @@
 function matrix_assembly!(f, I, J, V, rows, cols)
-    function setup_cache_snd_with_cleanup!(I, J, V, I_owner, parts_snd, rows)
-        function filter_out_without_resize!(global_to_own_row::AbstractVector, I::AbstractVector, J::AbstractVector, V::AbstractVector)
-            index = firstindex(I)
-            for (i, j, v) in zip(I, J, V)
-                @inbounds I[index] = i
-                @inbounds J[index] = j
-                @inbounds V[index] = v
-                index = ifelse((global_to_own_row[i] != 0)::Bool, nextind(I, index), index)
-            end
-            index - 1
-        end
+    function setup_cache_snd(I, J, V, I_owner, parts_snd, rows)
         global_to_own_row = global_to_own(rows)
         snd_index = findall(i -> global_to_own_row[i] == 0, I)
         owner_data = view(I_owner, snd_index)
@@ -34,11 +24,21 @@ function matrix_assembly!(f, I, J, V, rows, cols)
             ptrs[owner_to_p[owner]] += 1
         end
         rewind_ptrs!(ptrs)
-        data_size = filter_out_without_resize!(global_to_own_row, I, J, V)
         I_snd = JaggedArray(I_snd_data, ptrs)
         J_snd = JaggedArray(J_snd_data, ptrs)
         V_snd = JaggedArray(V_snd_data, ptrs)
-        I_snd, J_snd, V_snd, data_size
+        I_snd, J_snd, V_snd
+    end
+    function filter_out_without_resize!(rows, I, J, V)
+        global_to_own_row = global_to_own(rows)
+        index = firstindex(I)
+        for (i, j, v) in zip(I, J, V)
+            @inbounds I[index] = i
+            @inbounds J[index] = j
+            @inbounds V[index] = v
+            index = ifelse((global_to_own_row[i] != 0)::Bool, nextind(I, index), index)
+        end
+        index - 1
     end
     function store_recv_data!(I, J, V, data_size, I_rcv, J_rcv, V_rcv)
         total_size = data_size + length(I_rcv.data)
@@ -49,9 +49,9 @@ function matrix_assembly!(f, I, J, V, rows, cols)
         resize!(V, total_size)
         sizehint!(V, total_size)
         rcv_index = (data_size+1):total_size
-        I[rcv_index] .= I_rcv.data
-        J[rcv_index] .= J_rcv.data
-        V[rcv_index] .= V_rcv.data
+        I[rcv_index] = I_rcv.data
+        J[rcv_index] = J_rcv.data
+        V[rcv_index] = V_rcv.data
         I, J, V
     end
     function split_and_compress(I, J, V, rows_fa, cols_fa, f, combine=+)
@@ -84,11 +84,12 @@ function matrix_assembly!(f, I, J, V, rows, cols)
     I_owner = find_owner(rows, I)
     rows_sa = map(union_ghost, rows, I, I_owner)
     parts_snd, parts_rcv = assembly_neighbors(rows_sa)
-    I_snd, J_snd, V_snd, data_size = map(setup_cache_snd_with_cleanup!, I, J, V, I_owner, parts_snd, rows) |> tuple_of_arrays
+    I_snd, J_snd, V_snd = map(setup_cache_snd, I, J, V, I_owner, parts_snd, rows) |> tuple_of_arrays
     graph = ExchangeGraph(parts_snd, parts_rcv)
     t_I = exchange(I_snd, graph)
     t_J = exchange(J_snd, graph)
     t_V = exchange(V_snd, graph)
+    data_size = map(filter_out_without_resize!, rows, I, J, V)
     @async begin
         I_rcv = fetch(t_I)
         J_rcv = fetch(t_J)
@@ -104,12 +105,8 @@ function matrix_assembly!(f, I, J, V, rows, cols)
 end
 
 function matrix_assembly(f, I, J, V, rows, cols)
-    function split_own_and_snd(I, J, V, I_owner, parts_snd, rows)
+    function setup_cache_snd(I, J, V, I_owner, parts_snd, rows)
         global_to_own_row = global_to_own(rows)
-        hold_index = findall(i -> global_to_own_row[i] != 0, I)
-        I_hold = I[hold_index]
-        J_hold = J[hold_index]
-        V_hold = V[hold_index]
         snd_index = findall(i -> global_to_own_row[i] == 0, I)
         owner_data = view(I_owner, snd_index)
         gen = (owner => i for (i, owner) in enumerate(parts_snd))
@@ -136,22 +133,27 @@ function matrix_assembly(f, I, J, V, rows, cols)
         I_snd = JaggedArray(I_snd_data, ptrs)
         J_snd = JaggedArray(J_snd_data, ptrs)
         V_snd = JaggedArray(V_snd_data, ptrs)
-        I_hold, J_hold, V_hold, I_snd, J_snd, V_snd
+        I_snd, J_snd, V_snd
     end
-    function store_recv_data!(I, J, V, I_rcv, J_rcv, V_rcv)
-        data_size = length(I)
+    function setup_triplet(I, J, V, I_rcv, J_rcv, V_rcv, rows)
+        global_to_own_row = global_to_own(rows)
+        hold_index = findall(i -> global_to_own_row[i] != 0, I)
+        data_size = length(hold_index)
         total_size = data_size + length(I_rcv.data)
-        resize!(I, total_size)
-        sizehint!(I, total_size)
-        resize!(J, total_size)
-        sizehint!(J, total_size)
-        resize!(V, total_size)
-        sizehint!(V, total_size)
-        rcv_index = (data_size+1):total_size
-        I[rcv_index] .= I_rcv.data
-        J[rcv_index] .= J_rcv.data
-        V[rcv_index] .= V_rcv.data
-        I, J, V
+        Ti = eltype(I)
+        Tv = eltype(V)
+        new_I = zeros(Ti, total_size)
+        new_J = zeros(Ti, total_size)
+        new_V = zeros(Tv, total_size)
+        hold_range = 1:data_size
+        new_I[hold_range] = I[hold_index]
+        new_J[hold_range] = J[hold_index]
+        new_V[hold_range] = V[hold_index]
+        rcv_range = (data_size+1):total_size
+        new_I[rcv_range] = I_rcv.data
+        new_J[rcv_range] = J_rcv.data
+        new_V[rcv_range] = V_rcv.data
+        new_I, new_J, new_V
     end
     function split_and_compress(I, J, V, rows_fa, cols_fa, f, combine=+)
         global_to_own_col = global_to_own(cols_fa)
@@ -183,7 +185,7 @@ function matrix_assembly(f, I, J, V, rows, cols)
     I_owner = find_owner(rows, I)
     rows_sa = map(union_ghost, rows, I, I_owner)
     parts_snd, parts_rcv = assembly_neighbors(rows_sa)
-    I_hold, J_hold, V_hold, I_snd, J_snd, V_snd = map(split_own_and_snd, I, J, V, I_owner, parts_snd, rows) |> tuple_of_arrays
+    I_snd, J_snd, V_snd = map(setup_cache_snd, I, J, V, I_owner, parts_snd, rows) |> tuple_of_arrays
     graph = ExchangeGraph(parts_snd, parts_rcv)
     t_I = exchange(I_snd, graph)
     t_J = exchange(J_snd, graph)
@@ -192,11 +194,11 @@ function matrix_assembly(f, I, J, V, rows, cols)
         I_rcv = fetch(t_I)
         J_rcv = fetch(t_J)
         V_rcv = fetch(t_V)
-        map(store_recv_data!, I_hold, J_hold, V_hold, I_rcv, J_rcv, V_rcv)
+        triplet = map(setup_triplet, I, J, V, I_rcv, J_rcv, V_rcv, rows) |> tuple_of_arrays
         J_owner = find_owner(cols, J)
         rows_fa = rows
         cols_fa = map(union_ghost, cols, J, J_owner)
-        vals_fa = map((I, J, V, rows, cols) -> split_and_compress(I, J, V, rows, cols, f), I_hold, J_hold, V_hold, rows_fa, cols_fa)
+        vals_fa = map((I, J, V, rows, cols) -> split_and_compress(I, J, V, rows, cols, f), triplet..., rows_fa, cols_fa)
         assembled = true
         PSparseMatrix(vals_fa, rows_fa, cols_fa, assembled)
     end
