@@ -1,5 +1,5 @@
 function assemble_matrix_no_compressed_snd_and_no_cache!(I, J, V, rows, cols, f)
-    function quick_sort_partition!(part, key, values::Vararg{AbstractVector{<:Number},N}) where {N}
+    function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
         left_ptr = firstindex(key)
         right_ptr = lastindex(key)
@@ -25,23 +25,23 @@ function assemble_matrix_no_compressed_snd_and_no_cache!(I, J, V, rows, cols, f)
     function partition_and_setup_cache_snd!(I, J, V, I_owner, parts_snd, rows_sa)
         n_hold_data = quick_sort_partition!(rows_sa, I, J, V, I_owner)
         snd_index = (n_hold_data+1):lastindex(I)
-        I_snd_raw_data = view(I, snd_index)
-        J_snd_raw_data = view(J, snd_index)
-        V_snd_raw_data = view(V, snd_index)
-        I_snd_raw_owner = view(I_owner, snd_index)
+        I_raw_snd_data = view(I, snd_index)
+        J_raw_snd_data = view(J, snd_index)
+        V_raw_snd_data = view(V, snd_index)
+        I_raw_snd_owner = view(I_owner, snd_index)
         n_snd_data = length(I) - n_hold_data
         I_snd_data = similar(I, n_snd_data)
-        J_snd_data = similar(J, n_snd_data)
+        J_snd_data = similar(I, n_snd_data)
         V_snd_data = similar(V, n_snd_data)
         owner_to_p = Dict(owner => i for (i, owner) in enumerate(parts_snd))
         ptrs = zeros(Int32, length(parts_snd) + 1)
-        for (i, owner) in enumerate(I_snd_raw_owner)
+        for (i, owner) in enumerate(I_raw_snd_owner)
             p = owner_to_p[owner]
-            I_snd_raw_owner[i] = p
+            I_raw_snd_owner[i] = p
             ptrs[p+1] += 1
         end
         length_to_ptrs!(ptrs)
-        for (i, j, v, p) in zip(I_snd_raw_data, J_snd_raw_data, V_snd_raw_data, I_snd_raw_owner)
+        for (i, j, v, p) in zip(I_raw_snd_data, J_raw_snd_data, V_raw_snd_data, I_raw_snd_owner)
             index = ptrs[p]
             I_snd_data[index] = i
             J_snd_data[index] = j
@@ -121,7 +121,7 @@ function assemble_matrix_no_compressed_snd_and_no_cache!(I, J, V, rows, cols, f)
 end
 
 function assemble_matrix_with_compressed_snd_and_no_cache!(I, J, V, rows, cols, f)
-    function quick_sort_partition!(part, key, values::Vararg{AbstractVector{<:Number},N}) where {N}
+    function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
         left_ptr = firstindex(key)
         right_ptr = lastindex(key)
@@ -147,13 +147,13 @@ function assemble_matrix_with_compressed_snd_and_no_cache!(I, J, V, rows, cols, 
     function partition_and_setup_cache_snd!(I, J, V, parts_snd, rows_sa, cols)
         n_hold_data = quick_sort_partition!(rows_sa, I, J, V)
         snd_index = (n_hold_data+1):lastindex(I)
-        I_snd_raw_data = view(I, snd_index)
-        J_snd_raw_data = view(J, snd_index)
-        V_snd_raw_data = view(V, snd_index)
-        map_global_to_ghost!(I_snd_raw_data, rows_sa)
+        I_raw_snd_data = view(I, snd_index)
+        J_raw_snd_data = view(J, snd_index)
+        V_raw_snd_data = view(V, snd_index)
+        map_global_to_ghost!(I_raw_snd_data, rows_sa)
         n_ghost_rows = ghost_length(rows_sa)
         n_global_cols = global_length(cols)
-        compressed_snd_data = sparse(J_snd_raw_data, I_snd_raw_data, V_snd_raw_data, n_global_cols, n_ghost_rows)
+        compressed_snd_data = sparse(J_raw_snd_data, I_raw_snd_data, V_raw_snd_data, n_global_cols, n_ghost_rows)
         n_snd_data = nnz(compressed_snd_data)
         I_snd_data = similar(I, n_snd_data)
         J_snd_data = similar(J, n_snd_data)
