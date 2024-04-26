@@ -627,7 +627,7 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(A, V, ca
     end
     function split_and_compress!(A, V, change_index, perm)
         perm_partition!(V, change_index)
-        n_own_data = last(change_index)[1]
+        n_own_data = isempty(change_index) ? 1 : last(change_index)[1]
         is_own = firstindex(V):n_own_data
         is_ghost = (n_own_data+1):lastindex(V)
         V_own_own = view(V, is_own)
@@ -865,7 +865,7 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(A, V, cache)
             end
         end
         get_n_own_data(change_index::Vector{T}) where {T} = length(change_index)
-        get_n_own_data(change_index::Vector{Tuple{T,T}}) where {T} = last(change_index)[1]
+        get_n_own_data(change_index::Vector{Tuple{T,T}}) where {T} = isempty(change_index) ? 1 : last(change_index)[1]
         perm_partition!(V, change_index)
         n_own_data = get_n_own_data(change_index)
         is_own = firstindex(V):n_own_data
@@ -1291,7 +1291,7 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(A, V, 
     end
     function split_and_compress!(A, V, change_index, perm)
         perm_partition!(V, change_index)
-        n_own_data = last(change_index)[1]
+        n_own_data = isempty(change_index) ? 1 : last(change_index)[1]
         is_own = firstindex(V):n_own_data
         is_ghost = (n_own_data+1):lastindex(V)
         V_own_own = view(V, is_own)
@@ -1544,7 +1544,7 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(A, V, cache)
             end
         end
         get_n_own_data(change_index::Vector{T}) where {T} = length(change_index)
-        get_n_own_data(change_index::Vector{Tuple{T,T}}) where {T} = last(change_index)[1]
+        get_n_own_data(change_index::Vector{Tuple{T,T}}) where {T} = isempty(change_index) ? 1 : last(change_index)[1]
         perm_partition!(V, change_index)
         n_own_data = get_n_own_data(change_index)
         is_own = firstindex(V):n_own_data
