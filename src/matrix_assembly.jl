@@ -378,7 +378,7 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(I, J, V, r
         precompute_nzindex!(perm_ghost, own_ghost, I_own_ghost, J_own_ghost)
         rows_perm = local_permutation(rows_fa)
         cols_perm = local_permutation(cols_fa)
-        split_matrix(blocks, rows_perm, cols_perm), change_index, perm
+        split_matrix(blocks, rows_perm, cols_perm), n_own_data, change_index, perm
     end
     I_owner = find_owner(rows, I)
     rows_sa = map(union_ghost, rows, I, I_owner)
@@ -396,8 +396,8 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(I, J, V, r
         rows_fa = rows
         J_owner = find_owner(cols, J)
         cols_fa = map(union_ghost, cols, J, J_owner)
-        vals_fa, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
-        cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, change_sparse, perm_sparse)
+        vals_fa, own_data_size, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
+        cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse)
         assembled = true
         PSparseMatrix(vals_fa, rows_fa, cols_fa, assembled), cache
     end
@@ -426,9 +426,8 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(A, V, cach
         V[rcv_index] = V_rcv.data
         return
     end
-    function split_and_compress!(A, V, change_index, perm)
+    function split_and_compress!(A, V, n_own_data, change_index, perm)
         perm_partition!(V, change_index)
-        n_own_data = length(change_index)
         is_own = firstindex(V):n_own_data
         is_ghost = (n_own_data+1):lastindex(V)
         V_own_own = view(V, is_own)
@@ -439,13 +438,13 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(A, V, cach
         sparse_matrix!(A.blocks.own_ghost, V_own_ghost, perm_ghost; reset=false)
         return
     end
-    graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, change_sparse, perm_sparse = cache
+    graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse = cache
     map(partition_and_setup_cache_snd!, V_snd_buf, V, hold_data_size, change_snd, perm_snd)
     t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
     @async begin
         fetch(t_V)
         map(store_recv_data!, V, hold_data_size, V_rcv_buf)
-        map(split_and_compress!, partition(A), V, change_sparse, perm_sparse)
+        map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
         A
     end
 end
@@ -577,7 +576,7 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(I, J, V,
         precompute_nzindex!(perm_ghost, own_ghost, I_own_ghost, J_own_ghost)
         rows_perm = local_permutation(rows_fa)
         cols_perm = local_permutation(cols_fa)
-        split_matrix(blocks, rows_perm, cols_perm), change_index, perm
+        split_matrix(blocks, rows_perm, cols_perm), n_own_data, change_index, perm
     end
     I_owner = find_owner(rows, I)
     rows_sa = map(union_ghost, rows, I, I_owner)
@@ -595,8 +594,8 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(I, J, V,
         rows_fa = rows
         J_owner = find_owner(cols, J)
         cols_fa = map(union_ghost, cols, J, J_owner)
-        vals_fa, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
-        cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, change_sparse, perm_sparse)
+        vals_fa, own_data_size, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
+        cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse)
         assembled = true
         PSparseMatrix(vals_fa, rows_fa, cols_fa, assembled), cache
     end
@@ -625,9 +624,8 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(A, V, ca
         V[rcv_index] = V_rcv.data
         return
     end
-    function split_and_compress!(A, V, change_index, perm)
+    function split_and_compress!(A, V, n_own_data, change_index, perm)
         perm_partition!(V, change_index)
-        n_own_data = isempty(change_index) ? 1 : last(change_index)[1]
         is_own = firstindex(V):n_own_data
         is_ghost = (n_own_data+1):lastindex(V)
         V_own_own = view(V, is_own)
@@ -638,13 +636,13 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(A, V, ca
         sparse_matrix!(A.blocks.own_ghost, V_own_ghost, perm_ghost; reset=false)
         return
     end
-    graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, change_sparse, perm_sparse = cache
+    graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse = cache
     map(partition_and_setup_cache_snd!, V_snd_buf, V, hold_data_size, change_snd, perm_snd)
     t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
     @async begin
         fetch(t_V)
         map(store_recv_data!, V, hold_data_size, V_rcv_buf)
-        map(split_and_compress!, partition(A), V, change_sparse, perm_sparse)
+        map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
         A
     end
 end
@@ -800,7 +798,7 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(I, J, V, rows, c
         precompute_nzindex!(perm_ghost, own_ghost, I_own_ghost, J_own_ghost)
         rows_perm = local_permutation(rows_fa)
         cols_perm = local_permutation(cols_fa)
-        split_matrix(blocks, rows_perm, cols_perm), change_index, perm
+        split_matrix(blocks, rows_perm, cols_perm), n_own_data, change_index, perm
     end
     I_owner = find_owner(rows, I)
     rows_sa = map(union_ghost, rows, I, I_owner)
@@ -818,8 +816,8 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(I, J, V, rows, c
         rows_fa = rows
         J_owner = find_owner(cols, J)
         cols_fa = map(union_ghost, cols, J, J_owner)
-        vals_fa, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
-        cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, change_sparse, perm_sparse)
+        vals_fa, own_data_size, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
+        cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse)
         assembled = true
         PSparseMatrix(vals_fa, rows_fa, cols_fa, assembled), cache
     end
@@ -853,7 +851,7 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(A, V, cache)
         V[rcv_index] = V_rcv.data
         return
     end
-    function split_and_compress!(A, V, change_index, perm)
+    function split_and_compress!(A, V, n_own_data, change_index, perm)
         perm_partition!(V, perm::Vector{T}) where {T} = begin
             for (i, p) in enumerate(perm)
                 V[i], V[p] = V[p], V[i]
@@ -864,10 +862,7 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(A, V, cache)
                 V[i], V[j] = V[j], V[i]
             end
         end
-        get_n_own_data(change_index::Vector{T}) where {T} = length(change_index)
-        get_n_own_data(change_index::Vector{Tuple{T,T}}) where {T} = isempty(change_index) ? 1 : last(change_index)[1]
         perm_partition!(V, change_index)
-        n_own_data = get_n_own_data(change_index)
         is_own = firstindex(V):n_own_data
         is_ghost = (n_own_data+1):lastindex(V)
         V_own_own = view(V, is_own)
@@ -878,13 +873,13 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(A, V, cache)
         sparse_matrix!(A.blocks.own_ghost, V_own_ghost, perm_ghost; reset=false)
         return
     end
-    graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, change_sparse, perm_sparse = cache
+    graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse = cache
     map(partition_and_setup_cache_snd!, V_snd_buf, V, hold_data_size, change_snd, perm_snd)
     t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
     @async begin
         fetch(t_V)
         map(store_recv_data!, V, hold_data_size, V_rcv_buf)
-        map(split_and_compress!, partition(A), V, change_sparse, perm_sparse)
+        map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
         A
     end
 end
@@ -1026,7 +1021,7 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(I, J, V,
         precompute_nzindex!(perm_ghost, own_ghost, I_own_ghost, J_own_ghost)
         rows_perm = local_permutation(rows_fa)
         cols_perm = local_permutation(cols_fa)
-        split_matrix(blocks, rows_perm, cols_perm), change_index, perm
+        split_matrix(blocks, rows_perm, cols_perm), n_own_data, change_index, perm
     end
     I_owner = find_owner(rows, I)
     rows_sa = map(union_ghost, rows, I, I_owner)
@@ -1044,8 +1039,8 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(I, J, V,
         rows_fa = rows
         J_owner = find_owner(cols, J)
         cols_fa = map(union_ghost, cols, J, J_owner)
-        vals_fa, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
-        cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, change_sparse, perm_sparse)
+        vals_fa, own_data_size, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
+        cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse)
         assembled = true
         PSparseMatrix(vals_fa, rows_fa, cols_fa, assembled), cache
     end
@@ -1075,9 +1070,8 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(A, V, ca
         V[rcv_index] = V_rcv.data
         return
     end
-    function split_and_compress!(A, V, change_index, perm)
+    function split_and_compress!(A, V, n_own_data, change_index, perm)
         perm_partition!(V, change_index)
-        n_own_data = length(change_index)
         is_own = firstindex(V):n_own_data
         is_ghost = (n_own_data+1):lastindex(V)
         V_own_own = view(V, is_own)
@@ -1088,13 +1082,13 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(A, V, ca
         sparse_matrix!(A.blocks.own_ghost, V_own_ghost, perm_ghost; reset=false)
         return
     end
-    graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, change_sparse, perm_sparse = cache
+    graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse = cache
     map(partition_and_setup_cache_snd!, V_snd_buf, V, hold_data_size, change_snd, perm_snd)
     t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
     @async begin
         fetch(t_V)
         map(store_recv_data!, V, hold_data_size, V_rcv_buf)
-        map(split_and_compress!, partition(A), V, change_sparse, perm_sparse)
+        map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
         A
     end
 end
@@ -1240,7 +1234,7 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(I, J, 
         precompute_nzindex!(perm_ghost, own_ghost, I_own_ghost, J_own_ghost)
         rows_perm = local_permutation(rows_fa)
         cols_perm = local_permutation(cols_fa)
-        split_matrix(blocks, rows_perm, cols_perm), change_index, perm
+        split_matrix(blocks, rows_perm, cols_perm), n_own_data, change_index, perm
     end
     I_owner = find_owner(rows, I)
     rows_sa = map(union_ghost, rows, I, I_owner)
@@ -1258,8 +1252,8 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(I, J, 
         rows_fa = rows
         J_owner = find_owner(cols, J)
         cols_fa = map(union_ghost, cols, J, J_owner)
-        vals_fa, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
-        cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, change_sparse, perm_sparse)
+        vals_fa, own_data_size, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
+        cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse)
         assembled = true
         PSparseMatrix(vals_fa, rows_fa, cols_fa, assembled), cache
     end
@@ -1289,9 +1283,8 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(A, V, 
         V[rcv_index] = V_rcv.data
         return
     end
-    function split_and_compress!(A, V, change_index, perm)
+    function split_and_compress!(A, V, n_own_data, change_index, perm)
         perm_partition!(V, change_index)
-        n_own_data = isempty(change_index) ? 1 : last(change_index)[1]
         is_own = firstindex(V):n_own_data
         is_ghost = (n_own_data+1):lastindex(V)
         V_own_own = view(V, is_own)
@@ -1302,13 +1295,13 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(A, V, 
         sparse_matrix!(A.blocks.own_ghost, V_own_ghost, perm_ghost; reset=false)
         return
     end
-    graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, change_sparse, perm_sparse = cache
+    graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse = cache
     map(partition_and_setup_cache_snd!, V_snd_buf, V, hold_data_size, change_snd, perm_snd)
     t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
     @async begin
         fetch(t_V)
         map(store_recv_data!, V, hold_data_size, V_rcv_buf)
-        map(split_and_compress!, partition(A), V, change_sparse, perm_sparse)
+        map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
         A
     end
 end
@@ -1478,7 +1471,7 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(I, J, V, rows,
         precompute_nzindex!(perm_ghost, own_ghost, I_own_ghost, J_own_ghost)
         rows_perm = local_permutation(rows_fa)
         cols_perm = local_permutation(cols_fa)
-        split_matrix(blocks, rows_perm, cols_perm), change_index, perm
+        split_matrix(blocks, rows_perm, cols_perm), n_own_data, change_index, perm
     end
     I_owner = find_owner(rows, I)
     rows_sa = map(union_ghost, rows, I, I_owner)
@@ -1496,8 +1489,8 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(I, J, V, rows,
         rows_fa = rows
         J_owner = find_owner(cols, J)
         cols_fa = map(union_ghost, cols, J, J_owner)
-        vals_fa, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
-        cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, change_sparse, perm_sparse)
+        vals_fa, own_data_size, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
+        cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse)
         assembled = true
         PSparseMatrix(vals_fa, rows_fa, cols_fa, assembled), cache
     end
@@ -1532,7 +1525,7 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(A, V, cache)
         V[rcv_index] = V_rcv.data
         return
     end
-    function split_and_compress!(A, V, change_index, perm)
+    function split_and_compress!(A, V, n_own_data, change_index, perm)
         perm_partition!(v, change::Vector{T}) where {T} = begin
             for (i, p) in enumerate(change)
                 v[i], v[p] = v[p], v[i]
@@ -1543,10 +1536,7 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(A, V, cache)
                 v[i], v[j] = v[j], v[i]
             end
         end
-        get_n_own_data(change_index::Vector{T}) where {T} = length(change_index)
-        get_n_own_data(change_index::Vector{Tuple{T,T}}) where {T} = isempty(change_index) ? 1 : last(change_index)[1]
         perm_partition!(V, change_index)
-        n_own_data = get_n_own_data(change_index)
         is_own = firstindex(V):n_own_data
         is_ghost = (n_own_data+1):lastindex(V)
         V_own_own = view(V, is_own)
@@ -1557,13 +1547,13 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(A, V, cache)
         sparse_matrix!(A.blocks.own_ghost, V_own_ghost, perm_ghost; reset=false)
         return
     end
-    graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, change_sparse, perm_sparse = cache
+    graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse = cache
     map(partition_and_setup_cache_snd!, V_snd_buf, V, hold_data_size, change_snd, perm_snd)
     t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
     @async begin
         fetch(t_V)
         map(store_recv_data!, V, hold_data_size, V_rcv_buf)
-        map(split_and_compress!, partition(A), V, change_sparse, perm_sparse)
+        map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
         A
     end
 end
