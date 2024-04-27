@@ -928,9 +928,6 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(I, J, V,
     end
     function partition_and_setup_cache_snd!(I, J, V, perm, parts_snd, rows_sa, cols)
         n_hold_data, change_index = quick_sort_partition!(rows_sa, I, J, V)
-        n_raw_snd_data = length(I) - n_hold_data
-        resize!(perm, n_raw_snd_data)
-        sizehint!(perm, n_raw_snd_data)
         snd_index = (n_hold_data+1):lastindex(I)
         I_raw_snd_data = view(I, snd_index)
         J_raw_snd_data = view(J, snd_index)
@@ -950,26 +947,29 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(I, J, V,
             ptrs[ghost_to_p[i]+1] += 1
         end
         length_to_ptrs!(ptrs)
+        n_raw_snd_data = length(I) - n_hold_data
+        buffer_size = n_raw_snd_data + n_snd_data
+        resize!(perm, buffer_size)
+        sizehint!(perm, buffer_size)
+        buffer_perm = view(perm, firstindex(perm):n_raw_snd_data)
+        buffer_aux = view(perm, (n_raw_snd_data+1):lastindex(perm))
+        ghost_to_global_row = ghost_to_global(rows_sa)
         for (n, (j, i, v)) in enumerate(nziterator(compressed_snd_data))
             p = ghost_to_p[i]
             index = ptrs[p]
+            I_snd_data[index] = ghost_to_global_row[i]
             J_snd_data[index] = j
             V_snd_data[index] = v
-            I_snd_data[n] = index
+            buffer_aux[n] = index
             ptrs[p] += 1
         end
         rewind_ptrs!(ptrs)
-        precompute_nzindex!(perm, compressed_snd_data, J_raw_snd_data, I_raw_snd_data)
-        for (i, p) in enumerate(perm)
-            perm[i] = I_snd_data[p]
+        precompute_nzindex!(buffer_perm, compressed_snd_data, J_raw_snd_data, I_raw_snd_data)
+        for (i, p) in enumerate(buffer_perm)
+            buffer_perm[i] = buffer_aux[p]
         end
-        ghost_to_global_row = ghost_to_global(rows_sa)
-        for (_, i, _) in nziterator(compressed_snd_data)
-            p = ghost_to_p[i]
-            I_snd_data[ptrs[p]] = ghost_to_global_row[i]
-            ptrs[p] += 1
-        end
-        rewind_ptrs!(ptrs)
+        resize!(perm, n_raw_snd_data)
+        sizehint!(perm, n_raw_snd_data)
         I_snd = JaggedArray(I_snd_data, ptrs)
         J_snd = JaggedArray(J_snd_data, ptrs)
         V_snd = JaggedArray(V_snd_data, ptrs)
@@ -1141,9 +1141,6 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(I, J, 
     end
     function partition_and_setup_cache_snd!(I, J, V, perm, parts_snd, rows_sa, cols)
         n_hold_data, change_index = quick_sort_partition!(rows_sa, I, J, V)
-        n_raw_snd_data = length(I) - n_hold_data
-        resize!(perm, n_raw_snd_data)
-        sizehint!(perm, n_raw_snd_data)
         snd_index = (n_hold_data+1):lastindex(I)
         I_raw_snd_data = view(I, snd_index)
         J_raw_snd_data = view(J, snd_index)
@@ -1163,26 +1160,29 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(I, J, 
             ptrs[ghost_to_p[i]+1] += 1
         end
         length_to_ptrs!(ptrs)
+        n_raw_snd_data = length(I) - n_hold_data
+        buffer_size = n_raw_snd_data + n_snd_data
+        resize!(perm, buffer_size)
+        sizehint!(perm, buffer_size)
+        buffer_perm = view(perm, firstindex(perm):n_raw_snd_data)
+        buffer_aux = view(perm, (n_raw_snd_data+1):lastindex(perm))
+        ghost_to_global_row = ghost_to_global(rows_sa)
         for (n, (j, i, v)) in enumerate(nziterator(compressed_snd_data))
             p = ghost_to_p[i]
             index = ptrs[p]
-            I_snd_data[n] = index
+            I_snd_data[index] = ghost_to_global_row[i]
             J_snd_data[index] = j
             V_snd_data[index] = v
+            buffer_aux[n] = index
             ptrs[p] += 1
         end
         rewind_ptrs!(ptrs)
-        precompute_nzindex!(perm, compressed_snd_data, J_raw_snd_data, I_raw_snd_data)
-        for (i, p) in enumerate(perm)
-            perm[i] = I_snd_data[p]
+        precompute_nzindex!(buffer_perm, compressed_snd_data, J_raw_snd_data, I_raw_snd_data)
+        for (i, p) in enumerate(buffer_perm)
+            buffer_perm[i] = buffer_aux[p]
         end
-        ghost_to_global_row = ghost_to_global(rows_sa)
-        for (_, i, _) in nziterator(compressed_snd_data)
-            p = ghost_to_p[i]
-            I_snd_data[ptrs[p]] = ghost_to_global_row[i]
-            ptrs[p] += 1
-        end
-        rewind_ptrs!(ptrs)
+        resize!(perm, n_raw_snd_data)
+        sizehint!(perm, n_raw_snd_data)
         I_snd = JaggedArray(I_snd_data, ptrs)
         J_snd = JaggedArray(J_snd_data, ptrs)
         V_snd = JaggedArray(V_snd_data, ptrs)
@@ -1378,9 +1378,6 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(I, J, V, rows,
     end
     function partition_and_setup_cache_snd!(I, J, V, perm, parts_snd, rows_sa, cols)
         n_hold_data, change_index = quick_sort_partition!(rows_sa, I, J, V)
-        n_raw_snd_data = length(I) - n_hold_data
-        resize!(perm, n_raw_snd_data)
-        sizehint!(perm, n_raw_snd_data)
         snd_index = (n_hold_data+1):lastindex(I)
         I_raw_snd_data = view(I, snd_index)
         J_raw_snd_data = view(J, snd_index)
@@ -1400,26 +1397,29 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(I, J, V, rows,
             ptrs[ghost_to_p[i]+1] += 1
         end
         length_to_ptrs!(ptrs)
+        n_raw_snd_data = length(I) - n_hold_data
+        buffer_size = n_raw_snd_data + n_snd_data
+        resize!(perm, buffer_size)
+        sizehint!(perm, buffer_size)
+        buffer_perm = view(perm, firstindex(perm):n_raw_snd_data)
+        buffer_aux = view(perm, (n_raw_snd_data+1):lastindex(perm))
+        ghost_to_global_row = ghost_to_global(rows_sa)
         for (n, (j, i, v)) in enumerate(nziterator(compressed_snd_data))
             p = ghost_to_p[i]
             index = ptrs[p]
-            I_snd_data[n] = index
+            I_snd_data[index] = ghost_to_global_row[i]
             J_snd_data[index] = j
             V_snd_data[index] = v
+            buffer_aux[n] = index
             ptrs[p] += 1
         end
         rewind_ptrs!(ptrs)
-        precompute_nzindex!(perm, compressed_snd_data, J_raw_snd_data, I_raw_snd_data)
-        for (i, p) in enumerate(perm)
-            perm[i] = I_snd_data[p]
+        precompute_nzindex!(buffer_perm, compressed_snd_data, J_raw_snd_data, I_raw_snd_data)
+        for (i, p) in enumerate(buffer_perm)
+            buffer_perm[i] = buffer_aux[p]
         end
-        ghost_to_global_row = ghost_to_global(rows_sa)
-        for (_, i, _) in nziterator(compressed_snd_data)
-            p = ghost_to_p[i]
-            I_snd_data[ptrs[p]] = ghost_to_global_row[i]
-            ptrs[p] += 1
-        end
-        rewind_ptrs!(ptrs)
+        resize!(perm, n_raw_snd_data)
+        sizehint!(perm, n_raw_snd_data)
         I_snd = JaggedArray(I_snd_data, ptrs)
         J_snd = JaggedArray(J_snd_data, ptrs)
         V_snd = JaggedArray(V_snd_data, ptrs)
