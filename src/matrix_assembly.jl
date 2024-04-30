@@ -29,7 +29,7 @@ function assemble_matrix_no_compressed_snd_and_no_cache!(I, J, V, rows, cols, f)
         J_raw_snd_data = view(J, snd_index)
         V_raw_snd_data = view(V, snd_index)
         I_raw_snd_owner = view(I_owner, snd_index)
-        n_snd_data = length(I) - n_hold_data
+        n_snd_data = length(I_raw_snd_data)
         I_snd_data = similar(I, n_snd_data)
         J_snd_data = similar(I, n_snd_data)
         V_snd_data = similar(V, n_snd_data)
@@ -304,7 +304,7 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(I, J, V, r
         J_raw_snd_data = view(J, snd_index)
         V_raw_snd_data = view(V, snd_index)
         I_raw_snd_owner = view(I_owner, snd_index)
-        n_snd_data = length(I) - n_hold_data
+        n_snd_data = length(I_raw_snd_data)
         I_snd_data = similar(I, n_snd_data)
         J_snd_data = similar(I, n_snd_data)
         V_snd_data = similar(V, n_snd_data)
@@ -502,7 +502,7 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(I, J, V,
         J_raw_snd_data = view(J, snd_index)
         V_raw_snd_data = view(V, snd_index)
         I_raw_snd_owner = view(I_owner, snd_index)
-        n_snd_data = length(I) - n_hold_data
+        n_snd_data = length(I_raw_snd_data)
         I_snd_data = similar(I, n_snd_data)
         J_snd_data = similar(I, n_snd_data)
         V_snd_data = similar(V, n_snd_data)
@@ -724,7 +724,7 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(I, J, V, rows, c
         J_raw_snd_data = view(J, snd_index)
         V_raw_snd_data = view(V, snd_index)
         I_raw_snd_owner = view(I_owner, snd_index)
-        n_snd_data = length(I) - n_hold_data
+        n_snd_data = length(I_raw_snd_data)
         I_snd_data = similar(I, n_snd_data)
         J_snd_data = similar(I, n_snd_data)
         V_snd_data = similar(V, n_snd_data)
