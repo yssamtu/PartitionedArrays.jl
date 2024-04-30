@@ -947,7 +947,7 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(I, J, V,
             ptrs[ghost_to_p[i]+1] += 1
         end
         length_to_ptrs!(ptrs)
-        n_raw_snd_data = length(I) - n_hold_data
+        n_raw_snd_data = length(I_raw_snd_data)
         buffer_size = n_raw_snd_data + n_snd_data
         resize!(perm, buffer_size)
         sizehint!(perm, buffer_size)
@@ -1160,7 +1160,7 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(I, J, 
             ptrs[ghost_to_p[i]+1] += 1
         end
         length_to_ptrs!(ptrs)
-        n_raw_snd_data = length(I) - n_hold_data
+        n_raw_snd_data = length(I_raw_snd_data)
         buffer_size = n_raw_snd_data + n_snd_data
         resize!(perm, buffer_size)
         sizehint!(perm, buffer_size)
@@ -1397,7 +1397,7 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(I, J, V, rows,
             ptrs[ghost_to_p[i]+1] += 1
         end
         length_to_ptrs!(ptrs)
-        n_raw_snd_data = length(I) - n_hold_data
+        n_raw_snd_data = length(I_raw_snd_data)
         buffer_size = n_raw_snd_data + n_snd_data
         resize!(perm, buffer_size)
         sizehint!(perm, buffer_size)
