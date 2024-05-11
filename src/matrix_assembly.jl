@@ -1,4 +1,4 @@
-function assemble_matrix_no_compressed_snd_and_no_cache!(I, J, V, rows, cols, f)
+function assemble_matrix_no_compressed_snd_and_no_cache!(f, I, J, V, rows, cols)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
         left_ptr = firstindex(key)
@@ -120,7 +120,7 @@ function assemble_matrix_no_compressed_snd_and_no_cache!(I, J, V, rows, cols, f)
     end
 end
 
-function assemble_matrix_with_compressed_snd_and_no_cache!(I, J, V, rows, cols, f)
+function assemble_matrix_with_compressed_snd_and_no_cache!(f, I, J, V, rows, cols)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
         left_ptr = firstindex(key)
@@ -255,7 +255,7 @@ function precompute_nzindex!(K::AbstractVector{Int32}, A, I, J)
     end
 end
 
-function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(I, J, V, rows, cols, f)
+function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(f, I, J, V, rows, cols)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
         left_ptr = firstindex(key)
@@ -449,7 +449,7 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(A, V, cach
     end
 end
 
-function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(I, J, V, rows, cols, f)
+function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(f, I, J, V, rows, cols)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
         n_change = 0
@@ -647,7 +647,7 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(A, V, ca
     end
 end
 
-function assemble_matrix_no_compressed_snd_and_with_auto_cache!(I, J, V, rows, cols, f)
+function assemble_matrix_no_compressed_snd_and_with_auto_cache!(f, I, J, V, rows, cols)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
         n_change = 0
@@ -884,7 +884,7 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(A, V, cache)
     end
 end
 
-function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(I, J, V, rows, cols, f)
+function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(f, I, J, V, rows, cols)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
         left_ptr = firstindex(key)
@@ -1093,7 +1093,7 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(A, V, ca
     end
 end
 
-function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(I, J, V, rows, cols, f)
+function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(f, I, J, V, rows, cols)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
         n_change = 0
@@ -1306,7 +1306,7 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(A, V, 
     end
 end
 
-function assemble_matrix_with_compressed_snd_and_with_auto_cache!(I, J, V, rows, cols, f)
+function assemble_matrix_with_compressed_snd_and_with_auto_cache!(f, I, J, V, rows, cols)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
         n_change = 0
