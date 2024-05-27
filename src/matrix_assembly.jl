@@ -434,8 +434,8 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(A, V, cach
         V_own_ghost = view(V, is_ghost)
         perm_own = view(perm, is_own)
         perm_ghost = view(perm, is_ghost)
-        sparse_matrix!(A.blocks.own_own, V_own_own, perm_own; reset=false)
-        sparse_matrix!(A.blocks.own_ghost, V_own_ghost, perm_ghost; reset=false)
+        sparse_matrix!(A.blocks.own_own, V_own_own, perm_own)
+        sparse_matrix!(A.blocks.own_ghost, V_own_ghost, perm_ghost)
         return
     end
     graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse = cache
@@ -632,8 +632,8 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(A, V, ca
         V_own_ghost = view(V, is_ghost)
         perm_own = view(perm, is_own)
         perm_ghost = view(perm, is_ghost)
-        sparse_matrix!(A.blocks.own_own, V_own_own, perm_own; reset=false)
-        sparse_matrix!(A.blocks.own_ghost, V_own_ghost, perm_ghost; reset=false)
+        sparse_matrix!(A.blocks.own_own, V_own_own, perm_own)
+        sparse_matrix!(A.blocks.own_ghost, V_own_ghost, perm_ghost)
         return
     end
     graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse = cache
@@ -869,8 +869,8 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(A, V, cache)
         V_own_ghost = view(V, is_ghost)
         perm_own = view(perm, is_own)
         perm_ghost = view(perm, is_ghost)
-        sparse_matrix!(A.blocks.own_own, V_own_own, perm_own; reset=false)
-        sparse_matrix!(A.blocks.own_ghost, V_own_ghost, perm_ghost; reset=false)
+        sparse_matrix!(A.blocks.own_own, V_own_own, perm_own)
+        sparse_matrix!(A.blocks.own_ghost, V_own_ghost, perm_ghost)
         return
     end
     graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse = cache
@@ -1078,8 +1078,8 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(A, V, ca
         V_own_ghost = view(V, is_ghost)
         perm_own = view(perm, is_own)
         perm_ghost = view(perm, is_ghost)
-        sparse_matrix!(A.blocks.own_own, V_own_own, perm_own; reset=false)
-        sparse_matrix!(A.blocks.own_ghost, V_own_ghost, perm_ghost; reset=false)
+        sparse_matrix!(A.blocks.own_own, V_own_own, perm_own)
+        sparse_matrix!(A.blocks.own_ghost, V_own_ghost, perm_ghost)
         return
     end
     graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse = cache
@@ -1291,8 +1291,8 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(A, V, 
         V_own_ghost = view(V, is_ghost)
         perm_own = view(perm, is_own)
         perm_ghost = view(perm, is_ghost)
-        sparse_matrix!(A.blocks.own_own, V_own_own, perm_own; reset=false)
-        sparse_matrix!(A.blocks.own_ghost, V_own_ghost, perm_ghost; reset=false)
+        sparse_matrix!(A.blocks.own_own, V_own_own, perm_own)
+        sparse_matrix!(A.blocks.own_ghost, V_own_ghost, perm_ghost)
         return
     end
     graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse = cache
@@ -1543,8 +1543,8 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(A, V, cache)
         V_own_ghost = view(V, is_ghost)
         perm_own = view(perm, is_own)
         perm_ghost = view(perm, is_ghost)
-        sparse_matrix!(A.blocks.own_own, V_own_own, perm_own; reset=false)
-        sparse_matrix!(A.blocks.own_ghost, V_own_ghost, perm_ghost; reset=false)
+        sparse_matrix!(A.blocks.own_own, V_own_own, perm_own)
+        sparse_matrix!(A.blocks.own_ghost, V_own_ghost, perm_ghost)
         return
     end
     graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse = cache
