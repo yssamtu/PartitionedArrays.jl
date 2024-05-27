@@ -186,9 +186,8 @@ function benchmark_psparse(distribute, params)
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
-            copy_A = deepcopy(A)
             copy_V = copy(psparse_args[3])
-            t_rebuildmat[irun] = @elapsed assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(copy_A, copy_V, cacheA) |> wait
+            t_rebuildmat[irun] = @elapsed assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(A, copy_V, cacheA) |> wait
         end
     elseif method == "assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache"
         for irun in 1:nruns
@@ -198,9 +197,8 @@ function benchmark_psparse(distribute, params)
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
-            copy_A = deepcopy(A)
             copy_V = copy(psparse_args[3])
-            t_rebuildmat[irun] = @elapsed assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(copy_A, copy_V, cacheA) |> wait
+            t_rebuildmat[irun] = @elapsed assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(A, copy_V, cacheA) |> wait
         end
     elseif method == "assemble_matrix_no_compressed_snd_and_with_auto_cache"
         for irun in 1:nruns
@@ -210,9 +208,8 @@ function benchmark_psparse(distribute, params)
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_no_compressed_snd_and_with_auto_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
-            copy_A = deepcopy(A)
             copy_V = copy(psparse_args[3])
-            t_rebuildmat[irun] = @elapsed assemble_matrix_no_compressed_snd_and_with_auto_cache!(copy_A, copy_V, cacheA) |> wait
+            t_rebuildmat[irun] = @elapsed assemble_matrix_no_compressed_snd_and_with_auto_cache!(A, copy_V, cacheA) |> wait
         end
     elseif method == "assemble_matrix_with_compressed_snd_and_with_int_vector_cache"
         for irun in 1:nruns
@@ -222,9 +219,8 @@ function benchmark_psparse(distribute, params)
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
-            copy_A = deepcopy(A)
             copy_V = copy(psparse_args[3])
-            t_rebuildmat[irun] = @elapsed assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(copy_A, copy_V, cacheA) |> wait
+            t_rebuildmat[irun] = @elapsed assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(A, copy_V, cacheA) |> wait
         end
     elseif method == "assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache"
         for irun in 1:nruns
@@ -234,9 +230,8 @@ function benchmark_psparse(distribute, params)
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
-            copy_A = deepcopy(A)
             copy_V = copy(psparse_args[3])
-            t_rebuildmat[irun] = @elapsed assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(copy_A, copy_V, cacheA) |> wait
+            t_rebuildmat[irun] = @elapsed assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(A, copy_V, cacheA) |> wait
         end
     elseif method == "assemble_matrix_with_compressed_snd_and_with_auto_cache"
         for irun in 1:nruns
@@ -246,9 +241,8 @@ function benchmark_psparse(distribute, params)
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_with_compressed_snd_and_with_auto_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
-            copy_A = deepcopy(A)
             copy_V = copy(psparse_args[3])
-            t_rebuildmat[irun] = @elapsed assemble_matrix_with_compressed_snd_and_with_auto_cache!(copy_A, copy_V, cacheA) |> wait
+            t_rebuildmat[irun] = @elapsed assemble_matrix_with_compressed_snd_and_with_auto_cache!(A, copy_V, cacheA) |> wait
         end
     end
     ts_in_main = gather(map(p -> (; t_buildmat, t_rebuildmat), parts))
