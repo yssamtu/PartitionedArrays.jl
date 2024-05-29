@@ -8,6 +8,8 @@ import DataStructures
 import JSON
 
 include("../../src/matrix_assembly.jl")
+include("common.jl")
 include("benchmarks.jl")
+include("helper.jl")
 
 end # module
