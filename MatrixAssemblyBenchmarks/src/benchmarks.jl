@@ -1,3 +1,15 @@
+methods = [
+    "psparse",
+    "petsc_setvalues",
+    "petsc_coo",
+    "assemble_matrix_no_compressed_snd_and_with_int_vector_cache",
+    "assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache",
+    "assemble_matrix_no_compressed_snd_and_with_auto_cache",
+    "assemble_matrix_with_compressed_snd_and_with_int_vector_cache",
+    "assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache",
+    "assemble_matrix_with_compressed_snd_and_with_auto_cache"
+]
+
 function coo_scalar_fem(cells_per_dir, parts_per_dir, parts, ::Type{T}, ::Type{Ti}) where {Ti,T}
     # TODO only symbolic info for the moment
     D = length(cells_per_dir)
@@ -280,6 +292,12 @@ function get_path(params, folder_name=get_folder_name(params))
     joinpath(folder_name, file_name * extension)
 end
 
+function get_path(method::String, folder_name=get_folder_name(params))
+    file_name = method
+    extension = ".json"
+    joinpath(folder_name, file_name * extension)
+end
+
 function get_params(path)
     function parse_tuple(type, str)
         vec_str = split(str[2:end-1], ",")
@@ -297,6 +315,42 @@ function get_params(path)
     (; nruns, cells_per_dir, parts_per_dir, method)
 end
 
+function get_execution_time(path)
+    function get_maximum(v)
+        np = length(v)
+        nruns = length(v[1])
+        while np > 1
+            left = 1
+            right = np
+            while left < right
+                v[left] = max.(v[left], v[right])
+                left += 1
+                right -= 1
+            end
+            np = (np + 1) >> 1
+        end
+        v[1]
+    end
+    json_dict = JSON.parsefile(path)
+    buildmat = Vector{Vector{Float64}}(json_dict["buildmat"])
+    rebuildmat = Vector{Vector{Float64}}(json_dict["rebuildmat"])
+    build_time = minimum(get_maximum(buildmat))
+    rebuild_time = minimum(get_maximum(rebuildmat))
+    (; build_time, rebuild_time)
+end
+
+function get_all_execution_times(params)
+    folder_name = get_folder_name(params)
+    execution_times = DataStructures.OrderedDict{String, @NamedTuple{build_time::Float64, rebuild_time::Float64}}()
+    for method in methods
+        path = get_path(method, folder_name)
+        execution_times[method] = get_execution_time(path)
+    end
+    open(get_path("summary", folder_name), "w") do f
+        JSON.print(f, execution_times, 2)
+    end
+end
+
 function experiment(job_params; folder_name=get_folder_name(job_params), path=get_path(job_params, folder_name))
     results_in_main = with_mpi(distribute -> benchmark_psparse(distribute, job_params))
     map_main(results_in_main) do results
@@ -310,44 +364,44 @@ function experiments(params)
     parts_per_dir = params.parts_per_dir
     cells_per_dir = parts_per_dir
     nruns = 1
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method="psparse")
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[1])
     with_mpi(distribute -> benchmark_psparse(distribute, job_params))
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method="petsc_setvalues")
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[2])
     with_mpi(distribute -> benchmark_psparse(distribute, job_params))
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method="petsc_coo")
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[3])
     with_mpi(distribute -> benchmark_psparse(distribute, job_params))
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_no_compressed_snd_and_with_int_vector_cache")
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[4])
     with_mpi(distribute -> benchmark_psparse(distribute, job_params))
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache")
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[5])
     with_mpi(distribute -> benchmark_psparse(distribute, job_params))
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_no_compressed_snd_and_with_auto_cache")
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[6])
     with_mpi(distribute -> benchmark_psparse(distribute, job_params))
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_with_compressed_snd_and_with_int_vector_cache")
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[7])
     with_mpi(distribute -> benchmark_psparse(distribute, job_params))
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache")
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[8])
     with_mpi(distribute -> benchmark_psparse(distribute, job_params))
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_with_compressed_snd_and_with_auto_cache")
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[9])
     with_mpi(distribute -> benchmark_psparse(distribute, job_params))
 
     nruns, cells_per_dir, parts_per_dir = params
     folder_name = get_folder_name(params)
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method="psparse")
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[1])
     experiment(job_params, folder_name=folder_name)
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method="petsc_setvalues")
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[2])
     experiment(job_params, folder_name=folder_name)
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method="petsc_coo")
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[3])
     experiment(job_params, folder_name=folder_name)
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_no_compressed_snd_and_with_int_vector_cache")
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[4])
     experiment(job_params, folder_name=folder_name)
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache")
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[5])
     experiment(job_params, folder_name=folder_name)
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_no_compressed_snd_and_with_auto_cache")
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[6])
     experiment(job_params, folder_name=folder_name)
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_with_compressed_snd_and_with_int_vector_cache")
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[7])
     experiment(job_params, folder_name=folder_name)
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache")
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[8])
     experiment(job_params, folder_name=folder_name)
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_with_compressed_snd_and_with_auto_cache")
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[9])
     experiment(job_params, folder_name=folder_name)
     return
 end
