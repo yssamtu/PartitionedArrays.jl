@@ -249,53 +249,105 @@ function benchmark_psparse(distribute, params)
     results_in_main = map_main(ts_in_main) do ts
         buildmat = map(i -> i.t_buildmat, ts)
         rebuildmat = map(i -> i.t_rebuildmat, ts)
-        results = (; params..., buildmat, rebuildmat)
+        results = (; buildmat, rebuildmat, params...)
         results
     end
 end
 
-function get_job_name(params)
-    params_value = values(params)
-    params_str = sprint(show, params_value)
-    params_str = replace(params_str, " " => "")
-    base64_str = base64encode(params_str)
-    replace(base64_str, "+" => "-", "/" => "_")
+function get_folder_name(params::@NamedTuple{nruns::Int64, cells_per_dir::Tuple{Int64, Int64, Int64}, parts_per_dir::Tuple{Int64, Int64, Int64}})
+    nruns, cells_per_dir, parts_per_dir = params
+    cells_per_dir_str = sprint(show, cells_per_dir)
+    cells_per_dir_str = replace(cells_per_dir_str, " " => "")
+    parts_per_dir_str = sprint(show, parts_per_dir)
+    parts_per_dir_str = replace(parts_per_dir_str, " " => "")
+    nruns_str = sprint(show, nruns)
+    mkpath(join([cells_per_dir_str, parts_per_dir_str, nruns_str], "_"))
 end
 
-function get_job_name(file_name::String)
-    file_base_name = basename(file_name)
-    splitext(file_base_name)[1]
+function get_folder_name(params)
+    nruns, cells_per_dir, parts_per_dir, _ = params
+    cells_per_dir_str = sprint(show, cells_per_dir)
+    cells_per_dir_str = replace(cells_per_dir_str, " " => "")
+    parts_per_dir_str = sprint(show, parts_per_dir)
+    parts_per_dir_str = replace(parts_per_dir_str, " " => "")
+    nruns_str = sprint(show, nruns)
+    mkpath(join([cells_per_dir_str, parts_per_dir_str, nruns_str], "_"))
 end
 
-function get_file_name(params)
-    folder = mkpath("results")
+function get_path(params, folder_name=get_folder_name(params))
+    file_name = params.method
     extension = ".json"
-    job_name = get_job_name(params)
-    joinpath(folder, job_name * extension)
+    joinpath(folder_name, file_name * extension)
 end
 
-function get_params(file_name::String)
+function get_params(path)
     function parse_tuple(type, str)
-        vec_str = split(str, ",")
+        vec_str = split(str[2:end-1], ",")
         vec_type = parse.(type, vec_str)
         NTuple{length(vec_type),eltype(vec_type)}(vec_type)
     end
-    job_name = get_job_name(file_name)
-    base64_str = replace(job_name, "-" => "+", "_" => "/")
-    params_str = String(base64decode(base64_str))
-    params_list = split(replace(params_str, ")" => "", "\"" => "(")[2:end-1], ",(")
-    nruns = parse(Int, params_list[1])
-    cells_per_dir = parse_tuple(Int, params_list[2])
-    parts_per_dir = parse_tuple(Int, params_list[3])
-    method = String(params_list[4])
+    abs_path = abspath(path)
+    dir_name = basename(dirname(abs_path))
+    base_name = basename(abs_path)
+    cells_per_dir_str, parts_per_dir_str, nruns_str = split(dir_name, "_")
+    nruns = parse(Int, nruns_str)
+    cells_per_dir = parse_tuple(Int, cells_per_dir_str)
+    parts_per_dir = parse_tuple(Int, parts_per_dir_str)
+    method = splitext(base_name)[1]
     (; nruns, cells_per_dir, parts_per_dir, method)
 end
 
-function experiment(params)
-    results_in_main = with_mpi(distribute -> benchmark_psparse(distribute, params))
+function experiment(job_params; folder_name=get_folder_name(job_params), path=get_path(job_params, folder_name))
+    results_in_main = with_mpi(distribute -> benchmark_psparse(distribute, job_params))
     map_main(results_in_main) do results
-        open(get_file_name(params), "w") do f
+        open(path, "w") do f
             JSON.print(f, results, 2)
         end
     end
+end
+
+function experiments(params)
+    parts_per_dir = params.parts_per_dir
+    cells_per_dir = parts_per_dir
+    nruns = 1
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method="psparse")
+    with_mpi(distribute -> benchmark_psparse(distribute, job_params))
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method="petsc_setvalues")
+    with_mpi(distribute -> benchmark_psparse(distribute, job_params))
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method="petsc_coo")
+    with_mpi(distribute -> benchmark_psparse(distribute, job_params))
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_no_compressed_snd_and_with_int_vector_cache")
+    with_mpi(distribute -> benchmark_psparse(distribute, job_params))
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache")
+    with_mpi(distribute -> benchmark_psparse(distribute, job_params))
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_no_compressed_snd_and_with_auto_cache")
+    with_mpi(distribute -> benchmark_psparse(distribute, job_params))
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_with_compressed_snd_and_with_int_vector_cache")
+    with_mpi(distribute -> benchmark_psparse(distribute, job_params))
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache")
+    with_mpi(distribute -> benchmark_psparse(distribute, job_params))
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_with_compressed_snd_and_with_auto_cache")
+    with_mpi(distribute -> benchmark_psparse(distribute, job_params))
+
+    nruns, cells_per_dir, parts_per_dir = params
+    folder_name = get_folder_name(params)
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method="psparse")
+    experiment(job_params, folder_name=folder_name)
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method="petsc_setvalues")
+    experiment(job_params, folder_name=folder_name)
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method="petsc_coo")
+    experiment(job_params, folder_name=folder_name)
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_no_compressed_snd_and_with_int_vector_cache")
+    experiment(job_params, folder_name=folder_name)
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache")
+    experiment(job_params, folder_name=folder_name)
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_no_compressed_snd_and_with_auto_cache")
+    experiment(job_params, folder_name=folder_name)
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_with_compressed_snd_and_with_int_vector_cache")
+    experiment(job_params, folder_name=folder_name)
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache")
+    experiment(job_params, folder_name=folder_name)
+    job_params = (; nruns, cells_per_dir, parts_per_dir, method="assemble_matrix_with_compressed_snd_and_with_auto_cache")
+    experiment(job_params, folder_name=folder_name)
+    return
 end
