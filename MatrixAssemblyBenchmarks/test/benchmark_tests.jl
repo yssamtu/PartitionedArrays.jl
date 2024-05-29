@@ -6,5 +6,3 @@ nruns = 10
 
 params = (; nruns, cells_per_dir, parts_per_dir)
 mb.experiments(params)
-
-mb.get_all_execution_times(params)

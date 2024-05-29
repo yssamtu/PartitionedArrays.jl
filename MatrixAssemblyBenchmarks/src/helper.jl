@@ -71,6 +71,27 @@ function get_execution_time(path)
     (; build_time, rebuild_time)
 end
 
+function get_execution_time(path, buildmat, rebuildmat)
+    function get_maximum(v)
+        np = length(v)
+        nruns = length(v[1])
+        while np > 1
+            left = 1
+            right = np
+            while left < right
+                v[left] = max.(v[left], v[right])
+                left += 1
+                right -= 1
+            end
+            np = (np + 1) >> 1
+        end
+        v[1]
+    end
+    build_time = minimum(get_maximum(buildmat))
+    rebuild_time = minimum(get_maximum(rebuildmat))
+    (; build_time, rebuild_time)
+end
+
 function get_all_execution_times(params)
     folder_name = get_folder_name(params)
     execution_times = DataStructures.OrderedDict{String, @NamedTuple{build_time::Float64, rebuild_time::Float64}}()
@@ -78,7 +99,5 @@ function get_all_execution_times(params)
         path = get_path(method, folder_name)
         execution_times[method] = get_execution_time(path)
     end
-    open(get_path("summary", folder_name), "w") do f
-        JSON.print(f, execution_times, 2)
-    end
+    execution_times
 end

@@ -260,6 +260,9 @@ function experiment(job_params; folder_name=get_folder_name(job_params), path=ge
         open(path, "w") do f
             JSON.print(f, results, 2)
         end
+        buildmat = results.buildmat
+        rebuildmat = results.rebuildmat
+        (; path, buildmat, rebuildmat)
     end
 end
 
@@ -286,25 +289,68 @@ function experiments(params)
     job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[9])
     with_mpi(distribute -> benchmark_psparse(distribute, job_params))
 
+    execution_times = DataStructures.OrderedDict{String, @NamedTuple{build_time::Float64, rebuild_time::Float64}}()
     nruns, cells_per_dir, parts_per_dir = params
     folder_name = get_folder_name(params)
+
     job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[1])
-    experiment(job_params, folder_name=folder_name)
+    result = experiment(job_params, folder_name=folder_name)
+    map_main(result) do result
+        execution_times[job_params.method] = get_execution_time(result...)
+    end
+
     job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[2])
-    experiment(job_params, folder_name=folder_name)
+    result = experiment(job_params, folder_name=folder_name)
+    map_main(result) do result
+        execution_times[job_params.method] = get_execution_time(result...)
+    end
+
     job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[3])
-    experiment(job_params, folder_name=folder_name)
+    result = experiment(job_params, folder_name=folder_name)
+    map_main(result) do result
+        execution_times[job_params.method] = get_execution_time(result...)
+    end
+
     job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[4])
-    experiment(job_params, folder_name=folder_name)
+    result = experiment(job_params, folder_name=folder_name)
+    map_main(result) do result
+        execution_times[job_params.method] = get_execution_time(result...)
+    end
+
     job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[5])
-    experiment(job_params, folder_name=folder_name)
+    result = experiment(job_params, folder_name=folder_name)
+    map_main(result) do result
+        execution_times[job_params.method] = get_execution_time(result...)
+    end
+
     job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[6])
-    experiment(job_params, folder_name=folder_name)
+    result = experiment(job_params, folder_name=folder_name)
+    map_main(result) do result
+        execution_times[job_params.method] = get_execution_time(result...)
+    end
+
     job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[7])
-    experiment(job_params, folder_name=folder_name)
+    result = experiment(job_params, folder_name=folder_name)
+    map_main(result) do result
+        execution_times[job_params.method] = get_execution_time(result...)
+    end
+
     job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[8])
-    experiment(job_params, folder_name=folder_name)
+    result = experiment(job_params, folder_name=folder_name)
+    map_main(result) do result
+        execution_times[job_params.method] = get_execution_time(result...)
+    end
+
     job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[9])
-    experiment(job_params, folder_name=folder_name)
-    return
+    result = experiment(job_params, folder_name=folder_name)
+    map_main(result) do result
+        execution_times[job_params.method] = get_execution_time(result...)
+    end
+    
+    map_main(result) do result
+        open(get_path("summary", folder_name), "w") do f
+            JSON.print(f, execution_times, 2)
+        end
+    end
+    
 end
