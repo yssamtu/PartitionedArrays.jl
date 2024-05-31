@@ -1,4 +1,7 @@
 function assemble_matrix_no_compressed_snd_and_no_cache!(f, I, J, V, rows, cols)
+    # Time complexity: max(1(global_to_own), (N+1)), Space complexity: N+3N+N + max(7(global_to_own), 3 + max(8(global_to_own_part[]), 1+1(swap)))
+    # Time complexity: O(N+1), Space complexity: O(5N + 11)
+    # Time complexity: O(N), Space complexity: O(N)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
         left_ptr = firstindex(key)
@@ -22,6 +25,9 @@ function assemble_matrix_no_compressed_snd_and_no_cache!(f, I, J, V, rows, cols)
         end
         right_ptr
     end
+    # Time complexity: (N+1)(quick_sort_partition!) + N+N(length_to_ptrs)+N+N(rewind_ptrs!), Space complexity: 3N+N+N+N + max((11)(quick_sort_partition!), 9+3N+2N+(N+1)+max(2, 3(length_to_ptrs), 5, 3(rewind_ptrs!), 3))
+    # Time complexity: O(5N+1), Space complexity: O(6N + 6N+15)
+    # Time complexity: O(N), Space complexity: O(N)
     function partition_and_setup_cache_snd!(I, J, V, I_owner, parts_snd, rows_sa)
         n_hold_data = quick_sort_partition!(rows_sa, I, J, V, I_owner)
         snd_index = (n_hold_data+1):lastindex(I)
@@ -121,6 +127,9 @@ function assemble_matrix_no_compressed_snd_and_no_cache!(f, I, J, V, rows, cols)
 end
 
 function assemble_matrix_with_compressed_snd_and_no_cache!(f, I, J, V, rows, cols)
+    # Time complexity: max(1(global_to_own), (N+1)), Space complexity: N+3N + max(7(global_to_own), 3 + max(8(global_to_own_part[]), 1+1(swap)))
+    # Time complexity: O(N+1), Space complexity: O(4N + 11)
+    # Time complexity: O(N), Space complexity: O(N)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
         left_ptr = firstindex(key)
@@ -256,10 +265,27 @@ function precompute_nzindex!(K::AbstractVector{Int32}, A, I, J)
 end
 
 function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(f, I, J, V, rows, cols)
+    # Time complexity: max(1(global_to_own), 2(N+1)), Space complexity: N+3N+N + max(7(global_to_own), 5 + max(8(global_to_own_part[]), 2+N/2) + max(8(global_to_own_part[]), 1+1(swap)))
+    # Time complexity: O(2N+2), Space complexity: O(5N + N/2+15)
+    # Time complexity: O(N), Space complexity: O(N)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
         left_ptr = firstindex(key)
         right_ptr = lastindex(key)
+        while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
+            left_ptr += 1
+        end
+        while left_ptr <= right_ptr && global_to_own_part[key[right_ptr]] == 0
+            right_ptr -= 1
+        end
+        if left_ptr > right_ptr
+            Tkey = eltype(key)
+            return right_ptr, collect(Tkey, left_ptr:right_ptr)
+        end
+        left_bound = left_ptr
+        right_bound = right_ptr
+        left_ptr += 1
+        right_ptr -= 1
         while true
             while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
                 left_ptr += 1
@@ -274,9 +300,10 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(f, I, J, V
             right_ptr -= 1
         end
         Tkey = eltype(key)
-        change = collect(Tkey, 1:right_ptr)
-        left_ptr = firstindex(key)
-        right_ptr = lastindex(key)
+        change = collect(Tkey, left_bound:right_ptr)
+        left_ptr = left_bound
+        right_ptr = right_bound
+        left_bound -= 1
         while true
             while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
                 left_ptr += 1
@@ -291,7 +318,7 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(f, I, J, V
             for i in 1:N
                 values[i][left_ptr], values[i][right_ptr] = values[i][right_ptr], values[i][left_ptr]
             end
-            change[left_ptr] = right_ptr
+            change[left_ptr-left_bound] = right_ptr
             left_ptr += 1
             right_ptr -= 1
         end
@@ -404,13 +431,14 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(f, I, J, V
 end
 
 function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(A, V, cache)
-    function perm_partition!(V, perm::Vector{T}) where {T}
+    function perm_partition!(V, perm::Vector{T}, n_data) where {T}
+        offset = n_data - length(perm)
         for (i, p) in enumerate(perm)
-            V[i], V[p] = V[p], V[i]
+            V[i+offset], V[p] = V[p], V[i+offset]
         end
     end
     function partition_and_setup_cache_snd!(V_snd, V, n_hold_data, change_index, perm)
-        perm_partition!(V, change_index)
+        perm_partition!(V, change_index, n_hold_data)
         snd_index = (n_hold_data+1):lastindex(V)
         V_raw_snd_data = view(V, snd_index)
         V_snd_data = V_snd.data
@@ -427,7 +455,7 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(A, V, cach
         return
     end
     function split_and_compress!(A, V, n_own_data, change_index, perm)
-        perm_partition!(V, change_index)
+        perm_partition!(V, change_index, n_own_data)
         is_own = firstindex(V):n_own_data
         is_ghost = (n_own_data+1):lastindex(V)
         V_own_own = view(V, is_own)
@@ -450,11 +478,28 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(A, V, cach
 end
 
 function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(f, I, J, V, rows, cols)
+    # Time complexity: max(1(global_to_own), 2(N+1)), Space complexity: N+3N+N + max(7(global_to_own), 6 + max(8(global_to_own_part[]), 1+2*(N/2)+1) + max(8(global_to_own_part[]), 1+1(swap)))
+    # Time complexity: O(2N+2), Space complexity: O(5N + N+16)
+    # Time complexity: O(N), Space complexity: O(N)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
-        n_change = 0
         left_ptr = firstindex(key)
         right_ptr = lastindex(key)
+        while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
+            left_ptr += 1
+        end
+        while left_ptr <= right_ptr && global_to_own_part[key[right_ptr]] == 0
+            right_ptr -= 1
+        end
+        if left_ptr > right_ptr
+            Tkey = eltype(key)
+            return right_ptr, Vector{Tuple{Tkey,Tkey}}(undef, 0)
+        end
+        n_change = 1
+        left_bound = left_ptr
+        right_bound = right_ptr
+        left_ptr += 1
+        right_ptr -= 1
         while true
             while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
                 left_ptr += 1
@@ -472,8 +517,8 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(f, I, J,
         Tkey = eltype(key)
         change = Vector{Tuple{Tkey,Tkey}}(undef, n_change)
         ptr = firstindex(change)
-        left_ptr = firstindex(key)
-        right_ptr = lastindex(key)
+        left_ptr = left_bound
+        right_ptr = right_bound
         while true
             while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
                 left_ptr += 1
@@ -602,13 +647,13 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(f, I, J,
 end
 
 function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(A, V, cache)
-    function perm_partition!(V, perm::Vector{Tuple{T,T}}) where {T}
+    function perm_partition!(V, perm::Vector{Tuple{T,T}}, n_data) where {T}
         for (i, j) in perm
             V[i], V[j] = V[j], V[i]
         end
     end
     function partition_and_setup_cache_snd!(V_snd, V, n_hold_data, change_index, perm)
-        perm_partition!(V, change_index)
+        perm_partition!(V, change_index, n_hold_data)
         snd_index = (n_hold_data+1):lastindex(V)
         V_raw_snd_data = view(V, snd_index)
         V_snd_data = V_snd.data
@@ -625,7 +670,7 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(A, V, ca
         return
     end
     function split_and_compress!(A, V, n_own_data, change_index, perm)
-        perm_partition!(V, change_index)
+        perm_partition!(V, change_index, n_own_data)
         is_own = firstindex(V):n_own_data
         is_ghost = (n_own_data+1):lastindex(V)
         V_own_own = view(V, is_own)
@@ -648,11 +693,28 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(A, V, ca
 end
 
 function assemble_matrix_no_compressed_snd_and_with_auto_cache!(f, I, J, V, rows, cols)
+    # Time complexity: max(1(global_to_own), 2(N+1)), Space complexity: N+3N+N + max(7(global_to_own), 6 + max(8(global_to_own_part[]), 1+max(3, min(N/2, 2*(N/2)+1))) + max(8(global_to_own_part[]), 1+1(swap)))
+    # Time complexity: O(2N+2), Space complexity: O(5N + N/2+15)
+    # Time complexity: O(N), Space complexity: O(N)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
-        n_change = 0
         left_ptr = firstindex(key)
         right_ptr = lastindex(key)
+        while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
+            left_ptr += 1
+        end
+        while left_ptr <= right_ptr && global_to_own_part[key[right_ptr]] == 0
+            right_ptr -= 1
+        end
+        if left_ptr > right_ptr
+            Tkey = eltype(key)
+            return right_ptr, collect(Tkey, left_ptr:right_ptr)
+        end
+        n_change = 1
+        left_bound = left_ptr
+        right_bound = right_ptr
+        left_ptr += 1
+        right_ptr -= 1
         while true
             while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
                 left_ptr += 1
@@ -668,10 +730,11 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(f, I, J, V, rows
             right_ptr -= 1
         end
         Tkey = eltype(key)
-        if right_ptr - n_change - n_change <= 0
-            change = collect(Tkey, 1:right_ptr)
-            left_ptr = firstindex(key)
-            right_ptr = lastindex(key)
+        if right_ptr - left_bound - n_change - n_change <= -1
+            change = collect(Tkey, left_bound:right_ptr)
+            left_ptr = left_bound
+            right_ptr = right_bound
+            left_bound -= 1
             while true
                 while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
                     left_ptr += 1
@@ -686,15 +749,15 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(f, I, J, V, rows
                 for i in 1:N
                     values[i][left_ptr], values[i][right_ptr] = values[i][right_ptr], values[i][left_ptr]
                 end
-                change[left_ptr] = right_ptr
+                change[left_ptr-left_bound] = right_ptr
                 left_ptr += 1
                 right_ptr -= 1
             end
         else
             change = Vector{Tuple{Tkey,Tkey}}(undef, n_change)
             ptr = firstindex(change)
-            left_ptr = firstindex(key)
-            right_ptr = lastindex(key)
+            left_ptr = left_bound
+            right_ptr = right_bound
             while true
                 while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
                     left_ptr += 1
@@ -825,17 +888,18 @@ end
 
 function assemble_matrix_no_compressed_snd_and_with_auto_cache!(A, V, cache)
     function partition_and_setup_cache_snd!(V_snd, V, n_hold_data, change_index, perm)
-        perm_partition!(v, change::Vector{T}) where {T} = begin
-            for (i, p) in enumerate(change)
-                v[i], v[p] = v[p], v[i]
+        perm_partition!(v, perm::Vector{T}, n_data) where {T} = begin
+            offset = n_data - length(perm)
+            for (i, p) in enumerate(perm)
+                v[i+offset], v[p] = v[p], v[i+offset]
             end
         end
-        perm_partition!(v, change::Vector{Tuple{T,T}}) where {T} = begin
-            for (i, j) in change
+        perm_partition!(v, perm::Vector{Tuple{T,T}}, n_data) where {T} = begin
+            for (i, j) in perm
                 v[i], v[j] = v[j], v[i]
             end
         end
-        perm_partition!(V, change_index)
+        perm_partition!(V, change_index, n_hold_data)
         snd_index = (n_hold_data+1):lastindex(V)
         V_raw_snd_data = view(V, snd_index)
         V_snd_data = V_snd.data
@@ -852,17 +916,18 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(A, V, cache)
         return
     end
     function split_and_compress!(A, V, n_own_data, change_index, perm)
-        perm_partition!(V, perm::Vector{T}) where {T} = begin
+        perm_partition!(V, perm::Vector{T}, n_data) where {T} = begin
+            offset = n_data - length(perm)
             for (i, p) in enumerate(perm)
-                V[i], V[p] = V[p], V[i]
+                V[i+offset], V[p] = V[p], V[i+offset]
             end
         end
-        perm_partition!(V, perm::Vector{Tuple{T,T}}) where {T} = begin
+        perm_partition!(V, perm::Vector{Tuple{T,T}}, n_data) where {T} = begin
             for (i, j) in perm
                 V[i], V[j] = V[j], V[i]
             end
         end
-        perm_partition!(V, change_index)
+        perm_partition!(V, change_index, n_own_data)
         is_own = firstindex(V):n_own_data
         is_ghost = (n_own_data+1):lastindex(V)
         V_own_own = view(V, is_own)
@@ -885,10 +950,27 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(A, V, cache)
 end
 
 function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(f, I, J, V, rows, cols)
+    # Time complexity: max(1(global_to_own), 2(N+1)), Space complexity: N+3N + max(7(global_to_own), 5 + max(8(global_to_own_part[]), 2+N/2) + max(8(global_to_own_part[]), 1+1(swap)))
+    # Time complexity: O(2N+2), Space complexity: O(4N + N/2+15)
+    # Time complexity: O(N), Space complexity: O(N)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
         left_ptr = firstindex(key)
         right_ptr = lastindex(key)
+        while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
+            left_ptr += 1
+        end
+        while left_ptr <= right_ptr && global_to_own_part[key[right_ptr]] == 0
+            right_ptr -= 1
+        end
+        if left_ptr > right_ptr
+            Tkey = eltype(key)
+            return right_ptr, collect(Tkey, left_ptr:right_ptr)
+        end
+        left_bound = left_ptr
+        right_bound = right_ptr
+        left_ptr += 1
+        right_ptr -= 1
         while true
             while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
                 left_ptr += 1
@@ -903,9 +985,10 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(f, I, J,
             right_ptr -= 1
         end
         Tkey = eltype(key)
-        change = collect(Tkey, 1:right_ptr)
-        left_ptr = firstindex(key)
-        right_ptr = lastindex(key)
+        change = collect(Tkey, left_bound:right_ptr)
+        left_ptr = left_bound
+        right_ptr = right_bound
+        left_bound -= 1
         while true
             while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
                 left_ptr += 1
@@ -920,7 +1003,7 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(f, I, J,
             for i in 1:N
                 values[i][left_ptr], values[i][right_ptr] = values[i][right_ptr], values[i][left_ptr]
             end
-            change[left_ptr] = right_ptr
+            change[left_ptr-left_bound] = right_ptr
             left_ptr += 1
             right_ptr -= 1
         end
@@ -1047,13 +1130,14 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(f, I, J,
 end
 
 function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(A, V, cache)
-    function perm_partition!(V, perm::Vector{T}) where {T}
+    function perm_partition!(V, perm::Vector{T}, n_data) where {T}
+        offset = n_data - length(perm)
         for (i, p) in enumerate(perm)
-            V[i], V[p] = V[p], V[i]
+            V[i+offset], V[p] = V[p], V[i+offset]
         end
     end
     function partition_and_setup_cache_snd!(V_snd, V, n_hold_data, change_index, perm)
-        perm_partition!(V, change_index)
+        perm_partition!(V, change_index, n_hold_data)
         snd_index = (n_hold_data+1):lastindex(V)
         V_raw_snd_data = view(V, snd_index)
         V_snd_data = V_snd.data
@@ -1071,7 +1155,7 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(A, V, ca
         return
     end
     function split_and_compress!(A, V, n_own_data, change_index, perm)
-        perm_partition!(V, change_index)
+        perm_partition!(V, change_index, n_own_data)
         is_own = firstindex(V):n_own_data
         is_ghost = (n_own_data+1):lastindex(V)
         V_own_own = view(V, is_own)
@@ -1094,11 +1178,28 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(A, V, ca
 end
 
 function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(f, I, J, V, rows, cols)
+    # Time complexity: max(1(global_to_own), 2(N+1)), Space complexity: N+3N + max(7(global_to_own), 6 + max(8(global_to_own_part[]), 1+2*(N/2)+1) + max(8(global_to_own_part[]), 1+1(swap)))
+    # Time complexity: O(2N+2), Space complexity: O(4N + N+16)
+    # Time complexity: O(N), Space complexity: O(N)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
-        n_change = 0
         left_ptr = firstindex(key)
         right_ptr = lastindex(key)
+        while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
+            left_ptr += 1
+        end
+        while left_ptr <= right_ptr && global_to_own_part[key[right_ptr]] == 0
+            right_ptr -= 1
+        end
+        if left_ptr > right_ptr
+            Tkey = eltype(key)
+            return right_ptr, Vector{Tuple{Tkey,Tkey}}(undef, 0)
+        end
+        n_change = 1
+        left_bound = left_ptr
+        right_bound = right_ptr
+        left_ptr += 1
+        right_ptr -= 1
         while true
             while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
                 left_ptr += 1
@@ -1116,8 +1217,8 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(f, I, 
         Tkey = eltype(key)
         change = Vector{Tuple{Tkey,Tkey}}(undef, n_change)
         ptr = firstindex(change)
-        left_ptr = firstindex(key)
-        right_ptr = lastindex(key)
+        left_ptr = left_bound
+        right_ptr = right_bound
         while true
             while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
                 left_ptr += 1
@@ -1260,13 +1361,13 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(f, I, 
 end
 
 function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(A, V, cache)
-    function perm_partition!(V, perm::Vector{Tuple{T,T}}) where {T}
+    function perm_partition!(V, perm::Vector{Tuple{T,T}}, n_data) where {T}
         for (i, j) in perm
             V[i], V[j] = V[j], V[i]
         end
     end
     function partition_and_setup_cache_snd!(V_snd, V, n_hold_data, change_index, perm)
-        perm_partition!(V, change_index)
+        perm_partition!(V, change_index, n_hold_data)
         snd_index = (n_hold_data+1):lastindex(V)
         V_raw_snd_data = view(V, snd_index)
         V_snd_data = V_snd.data
@@ -1284,7 +1385,7 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(A, V, 
         return
     end
     function split_and_compress!(A, V, n_own_data, change_index, perm)
-        perm_partition!(V, change_index)
+        perm_partition!(V, change_index, n_own_data)
         is_own = firstindex(V):n_own_data
         is_ghost = (n_own_data+1):lastindex(V)
         V_own_own = view(V, is_own)
@@ -1307,11 +1408,28 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(A, V, 
 end
 
 function assemble_matrix_with_compressed_snd_and_with_auto_cache!(f, I, J, V, rows, cols)
+    # Time complexity: max(1(global_to_own), 2(N+1)), Space complexity: N+3N + max(7(global_to_own), 6 + max(8(global_to_own_part[]), 1+max(3,min(N/2, 2*(N/2)+1))) + max(8(global_to_own_part[]), 1+1(swap)))
+    # Time complexity: O(2N+2), Space complexity: O(4N + N/2+15)
+    # Time complexity: O(N), Space complexity: O(N)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
-        n_change = 0
         left_ptr = firstindex(key)
         right_ptr = lastindex(key)
+        while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
+            left_ptr += 1
+        end
+        while left_ptr <= right_ptr && global_to_own_part[key[right_ptr]] == 0
+            right_ptr -= 1
+        end
+        if left_ptr > right_ptr
+            Tkey = eltype(key)
+            return right_ptr, collect(Tkey, left_ptr:right_ptr)
+        end
+        n_change = 1
+        left_bound = left_ptr
+        right_bound = right_ptr
+        left_ptr += 1
+        right_ptr -= 1
         while true
             while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
                 left_ptr += 1
@@ -1327,10 +1445,11 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(f, I, J, V, ro
             right_ptr -= 1
         end
         Tkey = eltype(key)
-        if right_ptr - n_change - n_change <= 0
-            change = collect(Tkey, 1:right_ptr)
-            left_ptr = firstindex(key)
-            right_ptr = lastindex(key)
+        if right_ptr - left_bound - n_change - n_change <= -1
+            change = collect(Tkey, left_bound:right_ptr)
+            left_ptr = left_bound
+            right_ptr = right_bound
+            left_bound -= 1
             while true
                 while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
                     left_ptr += 1
@@ -1345,15 +1464,15 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(f, I, J, V, ro
                 for i in 1:N
                     values[i][left_ptr], values[i][right_ptr] = values[i][right_ptr], values[i][left_ptr]
                 end
-                change[left_ptr] = right_ptr
+                change[left_ptr-left_bound] = right_ptr
                 left_ptr += 1
                 right_ptr -= 1
             end
         else
             change = Vector{Tuple{Tkey,Tkey}}(undef, n_change)
             ptr = firstindex(change)
-            left_ptr = firstindex(key)
-            right_ptr = lastindex(key)
+            left_ptr = left_bound
+            right_ptr = right_bound
             while true
                 while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
                     left_ptr += 1
@@ -1498,17 +1617,18 @@ end
 
 function assemble_matrix_with_compressed_snd_and_with_auto_cache!(A, V, cache)
     function partition_and_setup_cache_snd!(V_snd, V, n_hold_data, change_index, perm)
-        perm_partition!(v, change::Vector{T}) where {T} = begin
-            for (i, p) in enumerate(change)
-                v[i], v[p] = v[p], v[i]
+        perm_partition!(v, perm::Vector{T}, n_data) where {T} = begin
+            offset = n_data - length(perm)
+            for (i, p) in enumerate(perm)
+                v[i+offset], v[p] = v[p], v[i+offset]
             end
         end
-        perm_partition!(v, change::Vector{Tuple{T,T}}) where {T} = begin
-            for (i, j) in change
+        perm_partition!(v, perm::Vector{Tuple{T,T}}, n_data) where {T} = begin
+            for (i, j) in perm
                 v[i], v[j] = v[j], v[i]
             end
         end
-        perm_partition!(V, change_index)
+        perm_partition!(V, change_index, n_hold_data)
         snd_index = (n_hold_data+1):lastindex(V)
         V_raw_snd_data = view(V, snd_index)
         V_snd_data = V_snd.data
@@ -1526,17 +1646,18 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(A, V, cache)
         return
     end
     function split_and_compress!(A, V, n_own_data, change_index, perm)
-        perm_partition!(v, change::Vector{T}) where {T} = begin
-            for (i, p) in enumerate(change)
-                v[i], v[p] = v[p], v[i]
+        perm_partition!(v, perm::Vector{T}, n_data) where {T} = begin
+            offset = n_data - length(perm)
+            for (i, p) in enumerate(perm)
+                v[i+offset], v[p] = v[p], v[i+offset]
             end
         end
-        perm_partition!(v, change::Vector{Tuple{T,T}}) where {T} = begin
-            for (i, j) in change
+        perm_partition!(v, perm::Vector{Tuple{T,T}}, n_data) where {T} = begin
+            for (i, j) in perm
                 v[i], v[j] = v[j], v[i]
             end
         end
-        perm_partition!(V, change_index)
+        perm_partition!(V, change_index, n_own_data)
         is_own = firstindex(V):n_own_data
         is_ghost = (n_own_data+1):lastindex(V)
         V_own_own = view(V, is_own)
