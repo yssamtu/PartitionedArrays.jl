@@ -25,8 +25,8 @@ function assemble_matrix_no_compressed_snd_and_no_cache!(f, I, J, V, rows, cols)
         end
         right_ptr
     end
-    # Time complexity: (N+1)(quick_sort_partition!) + N+N(length_to_ptrs)+N+N(rewind_ptrs!), Space complexity: 3N+N+N+N + max((11)(quick_sort_partition!), 9+3N+2N+(N+1)+max(2, 3(length_to_ptrs), 5, 3(rewind_ptrs!), 3))
-    # Time complexity: O(5N+1), Space complexity: O(6N + 6N+15)
+    # Time complexity: (N+1)(quick_sort_partition!) + N+N(length_to_ptrs)+N+N(rewind_ptrs!), Space complexity: 3N+N+N+N + max((11)(quick_sort_partition!), 7+3N+2N+(N+1)+max(3, 3(length_to_ptrs), 5, 3(rewind_ptrs!), 3))
+    # Time complexity: O(5N+1), Space complexity: O(6N + 6N+13)
     # Time complexity: O(5N), Space complexity: O(6N + 6N)
     function partition_and_setup_cache_snd!(I, J, V, I_owner, parts_snd, rows_sa)
         n_hold_data = quick_sort_partition!(rows_sa, I, J, V, I_owner)
@@ -60,6 +60,9 @@ function assemble_matrix_no_compressed_snd_and_no_cache!(f, I, J, V, rows, cols)
         V_snd = JaggedArray(V_snd_data, ptrs)
         I_snd, J_snd, V_snd, n_hold_data
     end
+    # Time complexity: 1, Space complexity: 3N+1+3(2N) + 3N+2
+    # Time complexity: O(1), Space complexity: O(9N+1 + 3N+2)
+    # Time complexity: O(1), Space complexity: O(9N + 3N)
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
@@ -74,6 +77,9 @@ function assemble_matrix_no_compressed_snd_and_no_cache!(f, I, J, V, rows, cols)
         V[rcv_index] = V_rcv.data
         return
     end
+    # Time complexity: (N+1)(quick_sort_partition)+3*N(map_global_to_own!)+N(map_global_to_ghost!)+6N(sparse), Space complexity: 3N+N + max(11(quick_sort_partition), 16 + 3N+2+max(1, 4(local_permutation)))
+    # Time complexity: O(11N+1), Space complexity: O(4N + 3N+22)
+    # Time complexity: O(11N), Space complexity: O(4N + 3N)
     function split_and_compress!(I, J, V, rows_fa, cols_fa)
         n_own_data = quick_sort_partition!(cols_fa, J, I, V)
         is_own = firstindex(I):n_own_data
@@ -153,8 +159,8 @@ function assemble_matrix_with_compressed_snd_and_no_cache!(f, I, J, V, rows, col
         end
         right_ptr
     end
-    # Time complexity: (N+1)(quick_sort_partition!)+N(map_global_to_ghost!)+6N(sparse)+N+N(length_to_ptrs)+N+N(rewind_ptrs!), Space complexity: 3N+N+N + max((11)(quick_sort_partition!), 9+max((5N+7)(sparse), 3N(compressed_snd_data)+1+5N+N+(N+1)+max(3(length_to_ptrs), 1+max(5, 3(rewind_ptrs!), 3))))
-    # Time complexity: O(12N+1), Space complexity: O(5N + 10N+17)
+    # Time complexity: (N+1)(quick_sort_partition!)+N(map_global_to_ghost!)+6N(sparse)+N+N(length_to_ptrs)+N+N(rewind_ptrs!), Space complexity: 3N+N+N + max((11)(quick_sort_partition!), 7+max((7N+13)(sparse), 3N(compressed_snd_data)+1+5N+N+(N+1)+max(3(length_to_ptrs), 1+max(5, 3(rewind_ptrs!), 3))))
+    # Time complexity: O(12N+1), Space complexity: O(5N + 10N+15)
     # Time complexity: O(12N), Space complexity: O(5N + 10N)
     function partition_and_setup_cache_snd!(I, J, V, parts_snd, rows_sa, cols)
         n_hold_data = quick_sort_partition!(rows_sa, I, J, V)
@@ -192,6 +198,9 @@ function assemble_matrix_with_compressed_snd_and_no_cache!(f, I, J, V, rows, col
         V_snd = JaggedArray(V_snd_data, ptrs)
         I_snd, J_snd, V_snd, n_hold_data
     end
+    # Time complexity: 1, Space complexity: 3N+1+3(2N) + 3N+2
+    # Time complexity: O(1), Space complexity: O(9N+1 + 3N+2)
+    # Time complexity: O(1), Space complexity: O(9N + 3N)
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
@@ -206,6 +215,9 @@ function assemble_matrix_with_compressed_snd_and_no_cache!(f, I, J, V, rows, col
         V[rcv_index] = V_rcv.data
         return
     end
+    # Time complexity: (N+1)(quick_sort_partition)+3*N(map_global_to_own!)+N(map_global_to_ghost!)+6N(sparse), Space complexity: 3N+N + max(11(quick_sort_partition), 16 + 3N+2+max(1, 4(local_permutation)))
+    # Time complexity: O(11N+1), Space complexity: O(4N + 3N+22)
+    # Time complexity: O(11N), Space complexity: O(4N + 3N)
     function split_and_compress!(I, J, V, rows_fa, cols_fa)
         n_own_data = quick_sort_partition!(cols_fa, J, I, V)
         is_own = firstindex(I):n_own_data
@@ -268,8 +280,8 @@ function precompute_nzindex!(K::AbstractVector{Int32}, A, I, J)
 end
 
 function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(f, I, J, V, rows, cols)
-    # Time complexity: max(1(global_to_own), 2(N+1)), Space complexity: N+3N+N + max(7(global_to_own), 5 + max(8(global_to_own_part[]), 2+N/2) + max(8(global_to_own_part[]), 1+1(swap)))
-    # Time complexity: O(2N+2), Space complexity: O(5N + N/2+15)
+    # Time complexity: max(1(global_to_own), 2(N+1)), Space complexity: N+3N+N + max(7(global_to_own), 5 + max(8(global_to_own_part[]), 1+N/2) + max(8(global_to_own_part[]), 1+1(swap)))
+    # Time complexity: O(2N+2), Space complexity: O(5N + N/2+14)
     # Time complexity: O(2N), Space complexity: O(5N + N/2)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
@@ -327,8 +339,8 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(f, I, J, V
         end
         right_ptr, change
     end
-    # Time complexity: (2N+2)(quick_sort_partition!) + N+N(length_to_ptrs)+N+N(rewind_ptrs!), Space complexity: 3N+N+N+N + max((N/2+15)(quick_sort_partition!), 9+N/2+3N+2N+(N+1)+max(2, 3(length_to_ptrs), 5, 3(rewind_ptrs!), 3))
-    # Time complexity: O(6N+2), Space complexity: O(6N + 13N/2+15)
+    # Time complexity: (2N+2)(quick_sort_partition!) + N+N(length_to_ptrs)+N+N(rewind_ptrs!), Space complexity: 3N+N+N+N + max((N/2+14)(quick_sort_partition!), 7+N/2+3N+2N+(N+1)+max(2, 3(length_to_ptrs), 5, 3(rewind_ptrs!), 3))
+    # Time complexity: O(6N+2), Space complexity: O(6N + 13N/2+13)
     # Time complexity: O(6N), Space complexity: O(6N + 13N/2)
     function partition_and_setup_cache_snd!(I, J, V, I_owner, parts_snd, rows_sa)
         n_hold_data, change_index = quick_sort_partition!(rows_sa, I, J, V, I_owner)
@@ -365,6 +377,9 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(f, I, J, V
         V_snd = JaggedArray(V_snd_data, ptrs)
         I_snd, J_snd, V_snd, n_hold_data, change_index, I_owner
     end
+    # Time complexity: 1, Space complexity: 3N+1+3(2N) + 3N+2
+    # Time complexity: O(1), Space complexity: O(9N+1 + 3N+2)
+    # Time complexity: O(1), Space complexity: O(9N + 3N)
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
@@ -379,6 +394,9 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(f, I, J, V
         V[rcv_index] = V_rcv.data
         return
     end
+    # Time complexity: (2N+2)(quick_sort_partition)+3*N(map_global_to_own!)+N(map_global_to_ghost!)+6N(sparse)+NlogN(precompute_nzindex!), Space complexity: 3N+N+N + max((N/2+14)(quick_sort_partition), 16+N/2 + 3N+4+max(1, 4(local_permutation)))
+    # Time complexity: O(12N+NlogN+2), Space complexity: O(5N + 7N/2+24)
+    # Time complexity: O(NlogN), Space complexity: O(5N + 7N/2)
     function split_and_compress!(I, J, V, perm, rows_fa, cols_fa)
         n_own_data, change_index = quick_sort_partition!(cols_fa, J, I, V)
         is_own = firstindex(I):n_own_data
@@ -546,8 +564,8 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(f, I, J,
         end
         right_ptr, change
     end
-    # Time complexity: (2N+2)(quick_sort_partition!) + N+N(length_to_ptrs)+N+N(rewind_ptrs!), Space complexity: 3N+N+N+N + max((N+16)(quick_sort_partition!), 9+N+3N+2N+(N+1)+max(2, 3(length_to_ptrs), 5, 3(rewind_ptrs!), 3))
-    # Time complexity: O(6N+2), Space complexity: O(6N + 7N+15)
+    # Time complexity: (2N+2)(quick_sort_partition!) + N+N(length_to_ptrs)+N+N(rewind_ptrs!), Space complexity: 3N+N+N+N + max((N+16)(quick_sort_partition!), 7+N+3N+2N+(N+1)+max(2, 3(length_to_ptrs), 5, 3(rewind_ptrs!), 3))
+    # Time complexity: O(6N+2), Space complexity: O(6N + 7N+13)
     # Time complexity: O(6N), Space complexity: O(6N + 7N)
     function partition_and_setup_cache_snd!(I, J, V, I_owner, parts_snd, rows_sa)
         n_hold_data, change_index = quick_sort_partition!(rows_sa, I, J, V, I_owner)
@@ -584,6 +602,9 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(f, I, J,
         V_snd = JaggedArray(V_snd_data, ptrs)
         I_snd, J_snd, V_snd, n_hold_data, change_index, I_owner
     end
+    # Time complexity: 1, Space complexity: 3N+1+3(2N) + 3N+2
+    # Time complexity: O(1), Space complexity: O(9N+1 + 3N+2)
+    # Time complexity: O(1), Space complexity: O(9N + 3N)
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
@@ -598,6 +619,9 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(f, I, J,
         V[rcv_index] = V_rcv.data
         return
     end
+    # Time complexity: (2N+2)(quick_sort_partition)+3*N(map_global_to_own!)+N(map_global_to_ghost!)+6N(sparse)+NlogN(precompute_nzindex!), Space complexity: 3N+N+N + max((N+16)(quick_sort_partition), 16+N + 3N+4+max(1, 4(local_permutation)))
+    # Time complexity: O(12N+NlogN+2), Space complexity: O(5N + 4N+24)
+    # Time complexity: O(NlogN), Space complexity: O(5N + 4N)
     function split_and_compress!(I, J, V, perm, rows_fa, cols_fa)
         n_own_data, change_index = quick_sort_partition!(cols_fa, J, I, V)
         is_own = firstindex(I):n_own_data
@@ -702,7 +726,7 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(A, V, ca
 end
 
 function assemble_matrix_no_compressed_snd_and_with_auto_cache!(f, I, J, V, rows, cols)
-    # Time complexity: max(1(global_to_own), 2(N+1)), Space complexity: N+3N+N + max(7(global_to_own), 6 + max(8(global_to_own_part[]), 1+max(3, min(N/2, 2*(N/2)+1))) + max(8(global_to_own_part[]), 1+1(swap)))
+    # Time complexity: max(1(global_to_own), 2(N+1)), Space complexity: N+3N+N + max(7(global_to_own), 6 + max(8(global_to_own_part[]), 1+min(N/2, 2*(N/2)+1)) + max(8(global_to_own_part[]), 1+1(swap)))
     # Time complexity: O(2N+2), Space complexity: O(5N + N/2+15)
     # Time complexity: O(2N), Space complexity: O(5N + N/2)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
@@ -789,8 +813,8 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(f, I, J, V, rows
         end
         right_ptr, change
     end
-    # Time complexity: (2N+2)(quick_sort_partition!) + N+N(length_to_ptrs)+N+N(rewind_ptrs!), Space complexity: 3N+N+N+N + max((N/2+15)(quick_sort_partition!), 9+N/2+3N+2N+(N+1)+max(2, 3(length_to_ptrs), 5, 3(rewind_ptrs!), 3))
-    # Time complexity: O(6N+2), Space complexity: O(6N + 13N/2+15)
+    # Time complexity: (2N+2)(quick_sort_partition!) + N+N(length_to_ptrs)+N+N(rewind_ptrs!), Space complexity: 3N+N+N+N + max((N/2+15)(quick_sort_partition!), 7+N/2+3N+2N+(N+1)+max(2, 3(length_to_ptrs), 5, 3(rewind_ptrs!), 3))
+    # Time complexity: O(6N+2), Space complexity: O(6N + 13N/2+13)
     # Time complexity: O(6N), Space complexity: O(6N + 13N/2)
     function partition_and_setup_cache_snd!(I, J, V, I_owner, parts_snd, rows_sa)
         n_hold_data, change_index = quick_sort_partition!(rows_sa, I, J, V, I_owner)
@@ -827,6 +851,9 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(f, I, J, V, rows
         V_snd = JaggedArray(V_snd_data, ptrs)
         I_snd, J_snd, V_snd, n_hold_data, change_index, I_owner
     end
+    # Time complexity: 1, Space complexity: 3N+1+3(2N) + 3N+2
+    # Time complexity: O(1), Space complexity: O(9N+1 + 3N+2)
+    # Time complexity: O(1), Space complexity: O(9N + 3N)
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
@@ -841,6 +868,9 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(f, I, J, V, rows
         V[rcv_index] = V_rcv.data
         return
     end
+    # Time complexity: (2N+2)(quick_sort_partition)+3*N(map_global_to_own!)+N(map_global_to_ghost!)+6N(sparse)+NlogN(precompute_nzindex!), Space complexity: 3N+N+N + max((N/2+15)(quick_sort_partition), 16+N/2 + 3N+4+max(1, 4(local_permutation)))
+    # Time complexity: O(12N+NlogN+2), Space complexity: O(5N + 7N/2+24)
+    # Time complexity: O(NlogN), Space complexity: O(5N + 7N/2)
     function split_and_compress!(I, J, V, perm, rows_fa, cols_fa)
         n_own_data, change_index = quick_sort_partition!(cols_fa, J, I, V)
         is_own = firstindex(I):n_own_data
@@ -962,8 +992,8 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(A, V, cache)
 end
 
 function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(f, I, J, V, rows, cols)
-    # Time complexity: max(1(global_to_own), 2(N+1)), Space complexity: N+3N + max(7(global_to_own), 5 + max(8(global_to_own_part[]), 2+N/2) + max(8(global_to_own_part[]), 1+1(swap)))
-    # Time complexity: O(2N+2), Space complexity: O(4N + N/2+15)
+    # Time complexity: max(1(global_to_own), 2(N+1)), Space complexity: N+3N + max(7(global_to_own), 5 + max(8(global_to_own_part[]), 1+N/2) + max(8(global_to_own_part[]), 1+1(swap)))
+    # Time complexity: O(2N+2), Space complexity: O(4N + N/2+14)
     # Time complexity: O(2N), Space complexity: O(4N + N/2)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
@@ -1021,8 +1051,8 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(f, I, J,
         end
         right_ptr, change
     end
-    # Time complexity: (2N+2)(quick_sort_partition!)+N(map_global_to_ghost!)+6N(sparse)+N+N(length_to_ptrs)+N+N(rewind_ptrs!)+NlogN(precompute_nzindex!)+N, Space complexity: 3N+N+N+N + max((N/2+15)(quick_sort_partition!), N/2+9+max((5N+7)(sparse), 3N(compressed_snd_data)+1+5N+N+(N+1)+max(3(length_to_ptrs), 2+N+max(3, 3(rewind_ptrs!), 4(precompute_nzindex!)))))
-    # Time complexity: O(14N+2+NlogN), Space complexity: O(6N + 23N/2+17)
+    # Time complexity: (2N+2)(quick_sort_partition!)+N(map_global_to_ghost!)+6N(sparse)+N+N(length_to_ptrs)+N+N(rewind_ptrs!)+NlogN(precompute_nzindex!)+N, Space complexity: 3N+N+N+N + max((N/2+14)(quick_sort_partition!), N/2+7+max((7N+13)(sparse), 3N(compressed_snd_data)+1+5N+N+(N+1)+max(3(length_to_ptrs), 2+N+max(3, 3(rewind_ptrs!), 4(precompute_nzindex!)))))
+    # Time complexity: O(14N+2+NlogN), Space complexity: O(6N + 23N/2+15)
     # Time complexity: O(NlogN), Space complexity: O(6N + 23N/2)
     function partition_and_setup_cache_snd!(I, J, V, perm, parts_snd, rows_sa, cols)
         n_hold_data, change_index = quick_sort_partition!(rows_sa, I, J, V)
@@ -1073,6 +1103,9 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(f, I, J,
         V_snd = JaggedArray(V_snd_data, ptrs)
         I_snd, J_snd, V_snd, n_hold_data, change_index, perm
     end
+    # Time complexity: 1, Space complexity: 3N+1+3(2N) + 3N+2
+    # Time complexity: O(1), Space complexity: O(9N+1 + 3N+2)
+    # Time complexity: O(1), Space complexity: O(9N + 3N)
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
@@ -1087,6 +1120,9 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(f, I, J,
         V[rcv_index] = V_rcv.data
         return
     end
+    # Time complexity: (2N+2)(quick_sort_partition)+3*N(map_global_to_own!)+N(map_global_to_ghost!)+6N(sparse)+NlogN(precompute_nzindex!), Space complexity: 3N+N+N + max((N/2+14)(quick_sort_partition), 16+N/2 + 3N+4+max(1, 4(local_permutation)))
+    # Time complexity: O(12N+NlogN+2), Space complexity: O(5N + 7N/2+24)
+    # Time complexity: O(NlogN), Space complexity: O(5N + 7N/2)
     function split_and_compress!(I, J, V, perm, rows_fa, cols_fa)
         n_own_data, change_index = quick_sort_partition!(cols_fa, J, I, V)
         is_own = firstindex(I):n_own_data
@@ -1255,8 +1291,8 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(f, I, 
         end
         right_ptr, change
     end
-    # Time complexity: (2N+2)(quick_sort_partition!)+N(map_global_to_ghost!)+6N(sparse)+N+N(length_to_ptrs)+N+N(rewind_ptrs!)+NlogN(precompute_nzindex!)+N, Space complexity: 3N+N+N+N + max((N+16)(quick_sort_partition!), N+9+max((5N+7)(sparse), 3N(compressed_snd_data)+1+5N+N+(N+1)+max(3(length_to_ptrs), 2+N+max(3, 3(rewind_ptrs!), 4(precompute_nzindex!)))))
-    # Time complexity: O(14N+2+NlogN), Space complexity: O(6N + 12N+17)
+    # Time complexity: (2N+2)(quick_sort_partition!)+N(map_global_to_ghost!)+6N(sparse)+N+N(length_to_ptrs)+N+N(rewind_ptrs!)+NlogN(precompute_nzindex!)+N, Space complexity: 3N+N+N+N + max((N+16)(quick_sort_partition!), N+7+max((7N+13)(sparse), 3N(compressed_snd_data)+1+5N+N+(N+1)+max(3(length_to_ptrs), 2+N+max(3, 3(rewind_ptrs!), 4(precompute_nzindex!)))))
+    # Time complexity: O(14N+2+NlogN), Space complexity: O(6N + 12N+15)
     # Time complexity: O(NlogN), Space complexity: O(6N + 12N)
     function partition_and_setup_cache_snd!(I, J, V, perm, parts_snd, rows_sa, cols)
         n_hold_data, change_index = quick_sort_partition!(rows_sa, I, J, V)
@@ -1307,6 +1343,9 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(f, I, 
         V_snd = JaggedArray(V_snd_data, ptrs)
         I_snd, J_snd, V_snd, n_hold_data, change_index, perm
     end
+    # Time complexity: 1, Space complexity: 3N+1+3(2N) + 3N+2
+    # Time complexity: O(1), Space complexity: O(9N+1 + 3N+2)
+    # Time complexity: O(1), Space complexity: O(9N + 3N)
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
@@ -1321,6 +1360,9 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(f, I, 
         V[rcv_index] = V_rcv.data
         return
     end
+    # Time complexity: (2N+2)(quick_sort_partition)+3*N(map_global_to_own!)+N(map_global_to_ghost!)+6N(sparse)+NlogN(precompute_nzindex!), Space complexity: 3N+N+N + max((N+16)(quick_sort_partition), 16+N + 3N+4+max(1, 4(local_permutation)))
+    # Time complexity: O(12N+NlogN+2), Space complexity: O(5N + 4N+24)
+    # Time complexity: O(NlogN), Space complexity: O(5N + 4N)
     function split_and_compress!(I, J, V, perm, rows_fa, cols_fa)
         n_own_data, change_index = quick_sort_partition!(cols_fa, J, I, V)
         is_own = firstindex(I):n_own_data
@@ -1426,7 +1468,7 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(A, V, 
 end
 
 function assemble_matrix_with_compressed_snd_and_with_auto_cache!(f, I, J, V, rows, cols)
-    # Time complexity: max(1(global_to_own), 2(N+1)), Space complexity: N+3N + max(7(global_to_own), 6 + max(8(global_to_own_part[]), 1+max(3,min(N/2, 2*(N/2)+1))) + max(8(global_to_own_part[]), 1+1(swap)))
+    # Time complexity: max(1(global_to_own), 2(N+1)), Space complexity: N+3N + max(7(global_to_own), 6 + max(8(global_to_own_part[]), 1+min(N/2, 2*(N/2)+1)) + max(8(global_to_own_part[]), 1+1(swap)))
     # Time complexity: O(2N+2), Space complexity: O(4N + N/2+15)
     # Time complexity: O(2N), Space complexity: O(4N + N/2)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
@@ -1513,8 +1555,8 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(f, I, J, V, ro
         end
         right_ptr, change
     end
-    # Time complexity: (2N+2)(quick_sort_partition!)+N(map_global_to_ghost!)+6N(sparse)+N+N(length_to_ptrs)+N+N(rewind_ptrs!)+NlogN(precompute_nzindex!)+N, Space complexity: 3N+N+N+N + max((N/2+15)(quick_sort_partition!), N/2+9+max((5N+7)(sparse), 3N(compressed_snd_data)+1+5N+N+(N+1)+max(3(length_to_ptrs), 2+N+max(3, 3(rewind_ptrs!), 4(precompute_nzindex!)))))
-    # Time complexity: O(14N+2+NlogN), Space complexity: O(6N + 23N/2+17)
+    # Time complexity: (2N+2)(quick_sort_partition!)+N(map_global_to_ghost!)+6N(sparse)+N+N(length_to_ptrs)+N+N(rewind_ptrs!)+NlogN(precompute_nzindex!)+N, Space complexity: 3N+N+N+N + max((N/2+15)(quick_sort_partition!), N/2+7+max((7N+13)(sparse), 3N(compressed_snd_data)+1+5N+N+(N+1)+max(3(length_to_ptrs), 2+N+max(3, 3(rewind_ptrs!), 4(precompute_nzindex!)))))
+    # Time complexity: O(14N+2+NlogN), Space complexity: O(6N + 23N/2+15)
     # Time complexity: O(NlogN), Space complexity: O(6N + 23N/2)
     function partition_and_setup_cache_snd!(I, J, V, perm, parts_snd, rows_sa, cols)
         n_hold_data, change_index = quick_sort_partition!(rows_sa, I, J, V)
@@ -1565,6 +1607,9 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(f, I, J, V, ro
         V_snd = JaggedArray(V_snd_data, ptrs)
         I_snd, J_snd, V_snd, n_hold_data, change_index, perm
     end
+    # Time complexity: 1, Space complexity: 3N+1+3(2N) + 3N+2
+    # Time complexity: O(1), Space complexity: O(9N+1 + 3N+2)
+    # Time complexity: O(1), Space complexity: O(9N + 3N)
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
@@ -1579,6 +1624,9 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(f, I, J, V, ro
         V[rcv_index] = V_rcv.data
         return
     end
+    # Time complexity: (2N+2)(quick_sort_partition)+3*N(map_global_to_own!)+N(map_global_to_ghost!)+6N(sparse)+NlogN(precompute_nzindex!), Space complexity: 3N+N+N + max((N/2+15)(quick_sort_partition), 16+N/2 + 3N+4+max(1, 4(local_permutation)))
+    # Time complexity: O(12N+NlogN+2), Space complexity: O(5N + 7N/2+24)
+    # Time complexity: O(NlogN), Space complexity: O(5N + 7N/2)
     function split_and_compress!(I, J, V, perm, rows_fa, cols_fa)
         n_own_data, change_index = quick_sort_partition!(cols_fa, J, I, V)
         is_own = firstindex(I):n_own_data
