@@ -280,8 +280,8 @@ function precompute_nzindex!(K::AbstractVector{Int32}, A, I, J)
 end
 
 function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(f, I, J, V, rows, cols)
-    # Time complexity: max(1(global_to_own), 2(N+1)+(N/2)(collect)), Space complexity: N+3N+N + max(7(global_to_own), 5 + max(8(global_to_own_part[]), 1+N/2) + max(8(global_to_own_part[]), 1+1(swap)))
-    # Time complexity: O(5N/2+2), Space complexity: O(5N + N/2+14)
+    # Time complexity: max(1(global_to_own), 2(N+1)), Space complexity: N+3N+N + max(7(global_to_own), 5 + max(8(global_to_own_part[]), 1+N/2) + max(8(global_to_own_part[]), 1+1(swap)))
+    # Time complexity: O(2N+2), Space complexity: O(5N + N/2+14)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
         left_ptr = firstindex(key)
@@ -294,7 +294,7 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(f, I, J, V
         end
         if left_ptr > right_ptr
             Tkey = eltype(key)
-            return right_ptr, collect(Tkey, left_ptr:right_ptr)
+            return right_ptr, Tkey[]
         end
         left_bound = left_ptr
         right_bound = right_ptr
@@ -314,12 +314,13 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(f, I, J, V
             right_ptr -= 1
         end
         Tkey = eltype(key)
-        change = collect(Tkey, left_bound:right_ptr)
         left_ptr = left_bound
-        right_ptr = right_bound
         left_bound -= 1
+        change = Vector{Tkey}(undef, right_ptr - left_bound)
+        right_ptr = right_bound
         while true
             while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
+                change[left_ptr-left_bound] = left_ptr
                 left_ptr += 1
             end
             while left_ptr <= right_ptr && global_to_own_part[key[right_ptr]] == 0
@@ -338,8 +339,8 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(f, I, J, V
         end
         right_ptr, change
     end
-    # Time complexity: (5N/2+2)(quick_sort_partition!) + (NP-1)+N+NP(length_to_ptrs)+N+NP(rewind_ptrs!), Space complexity: 3N+N+N+N + max((N/2+14)(quick_sort_partition!), 7+N/2+3N+2(NP-1)+NP+max(2, 3(length_to_ptrs), 5, 3(rewind_ptrs!), 3))
-    # Time complexity: O(9N/2+3NP+1), Space complexity: O(6N + 7N/2+3NP+10)
+    # Time complexity: (2N+2)(quick_sort_partition!) + (NP-1)+N+NP(length_to_ptrs)+N+NP(rewind_ptrs!), Space complexity: 3N+N+N+N + max((N/2+14)(quick_sort_partition!), 7+N/2+3N+2(NP-1)+NP+max(2, 3(length_to_ptrs), 5, 3(rewind_ptrs!), 3))
+    # Time complexity: O(4N+3NP+1), Space complexity: O(6N + 7N/2+3NP+10)
     function partition_and_setup_cache_snd!(I, J, V, I_owner, parts_snd, rows_sa)
         n_hold_data, change_index = quick_sort_partition!(rows_sa, I, J, V, I_owner)
         snd_index = (n_hold_data+1):lastindex(I)
@@ -746,8 +747,8 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(A, V, ca
 end
 
 function assemble_matrix_no_compressed_snd_and_with_auto_cache!(f, I, J, V, rows, cols)
-    # Time complexity: max(1(global_to_own), 2(N+1)+max(N/2, 1)), Space complexity: N+3N+N + max(7(global_to_own), 6 + max(8(global_to_own_part[]), 1+min(N/2, 2*(N/2)+1)) + max(8(global_to_own_part[]), 1+1(swap)))
-    # Time complexity: O(5N/2+2), Space complexity: O(5N + N/2+15)
+    # Time complexity: max(1(global_to_own), 2(N+1)), Space complexity: N+3N+N + max(7(global_to_own), 6 + max(8(global_to_own_part[]), 1+min(N/2, 2*(N/2)+1)) + max(8(global_to_own_part[]), 1+1(swap)))
+    # Time complexity: O(2N+2), Space complexity: O(5N + N/2+15)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
         left_ptr = firstindex(key)
@@ -760,7 +761,7 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(f, I, J, V, rows
         end
         if left_ptr > right_ptr
             Tkey = eltype(key)
-            return right_ptr, collect(Tkey, left_ptr:right_ptr)
+            return right_ptr, Tkey[]
         end
         n_change = 1
         left_bound = left_ptr
@@ -783,12 +784,13 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(f, I, J, V, rows
         end
         Tkey = eltype(key)
         if right_ptr - left_bound - n_change - n_change <= -1
-            change = collect(Tkey, left_bound:right_ptr)
             left_ptr = left_bound
-            right_ptr = right_bound
             left_bound -= 1
+            change = Vector{Tkey}(undef, right_ptr - left_bound)
+            right_ptr = right_bound
             while true
                 while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
+                    change[left_ptr-left_bound] = left_ptr
                     left_ptr += 1
                 end
                 while left_ptr <= right_ptr && global_to_own_part[key[right_ptr]] == 0
@@ -832,8 +834,8 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(f, I, J, V, rows
         end
         right_ptr, change
     end
-    # Time complexity: (5N/2+2)(quick_sort_partition!) + (NP-1)+N+NP(length_to_ptrs)+N+NP(rewind_ptrs!), Space complexity: 3N+N+N+N + max((N/2+15)(quick_sort_partition!), 7+N/2+3N+2(NP-1)+NP+max(2, 3(length_to_ptrs), 5, 3(rewind_ptrs!), 3))
-    # Time complexity: O(9N/2+3NP+1), Space complexity: O(6N + 7N/2+3NP+10)
+    # Time complexity: (2N+2)(quick_sort_partition!) + (NP-1)+N+NP(length_to_ptrs)+N+NP(rewind_ptrs!), Space complexity: 3N+N+N+N + max((N/2+15)(quick_sort_partition!), 7+N/2+3N+2(NP-1)+NP+max(2, 3(length_to_ptrs), 5, 3(rewind_ptrs!), 3))
+    # Time complexity: O(4N+3NP+1), Space complexity: O(6N + 7N/2+3NP+10)
     function partition_and_setup_cache_snd!(I, J, V, I_owner, parts_snd, rows_sa)
         n_hold_data, change_index = quick_sort_partition!(rows_sa, I, J, V, I_owner)
         snd_index = (n_hold_data+1):lastindex(I)
@@ -1031,8 +1033,8 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(A, V, cache)
 end
 
 function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(f, I, J, V, rows, cols)
-    # Time complexity: max(1(global_to_own), 2(N+1)+N/2), Space complexity: N+3N + max(7(global_to_own), 5 + max(8(global_to_own_part[]), 1+N/2) + max(8(global_to_own_part[]), 1+1(swap)))
-    # Time complexity: O(5N/2+2), Space complexity: O(4N + N/2+14)
+    # Time complexity: max(1(global_to_own), 2(N+1)), Space complexity: N+3N + max(7(global_to_own), 5 + max(8(global_to_own_part[]), 1+N/2) + max(8(global_to_own_part[]), 1+1(swap)))
+    # Time complexity: O(2N+2), Space complexity: O(4N + N/2+14)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
         left_ptr = firstindex(key)
@@ -1045,7 +1047,7 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(f, I, J,
         end
         if left_ptr > right_ptr
             Tkey = eltype(key)
-            return right_ptr, collect(Tkey, left_ptr:right_ptr)
+            return right_ptr, Tkey[]
         end
         left_bound = left_ptr
         right_bound = right_ptr
@@ -1065,12 +1067,13 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(f, I, J,
             right_ptr -= 1
         end
         Tkey = eltype(key)
-        change = collect(Tkey, left_bound:right_ptr)
         left_ptr = left_bound
-        right_ptr = right_bound
         left_bound -= 1
+        change = Vector{Tkey}(undef, right_ptr - left_bound)
+        right_ptr = right_bound
         while true
             while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
+                change[left_ptr-left_bound] = left_ptr
                 left_ptr += 1
             end
             while left_ptr <= right_ptr && global_to_own_part[key[right_ptr]] == 0
@@ -1089,8 +1092,8 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(f, I, J,
         end
         right_ptr, change
     end
-    # Time complexity: (5N/2+2)(quick_sort_partition!)+N(map_global_to_ghost!)+(3N+R+2C)(sparse)+(NP-1)+(NP-1)+N+NP(length_to_ptrs)+N+NP(rewind_ptrs!)+NlogN(precompute_nzindex!)+N, Space complexity: 3N+N+N+N(rows_sa+cols) + max((N/2+14)(quick_sort_partition!), N/2+7+max((4N+R+2C+15)(sparse), (2N+C)(compressed_snd_data)+1+3N+2(NP-1)+(NP-1)+NP+max(3(length_to_ptrs), 2+N+max(3, 3(rewind_ptrs!), 4(precompute_nzindex!)))))
-    # Time complexity: O(NlogN+19N/2+R+2C+4NP), Space complexity: O(6N + 13N/2+C+4NP+11)
+    # Time complexity: (2N+2)(quick_sort_partition!)+N(map_global_to_ghost!)+(3N+R+2C)(sparse)+(NP-1)+(NP-1)+N+NP(length_to_ptrs)+N+NP(rewind_ptrs!)+NlogN(precompute_nzindex!)+N, Space complexity: 3N+N+N+N(rows_sa+cols) + max((N/2+14)(quick_sort_partition!), N/2+7+max((4N+R+2C+15)(sparse), (2N+C)(compressed_snd_data)+1+3N+2(NP-1)+(NP-1)+NP+max(3(length_to_ptrs), 2+N+max(3, 3(rewind_ptrs!), 4(precompute_nzindex!)))))
+    # Time complexity: O(NlogN+9N+R+2C+4NP), Space complexity: O(6N + 13N/2+C+4NP+11)
     function partition_and_setup_cache_snd!(I, J, V, perm, parts_snd, rows_sa, cols)
         n_hold_data, change_index = quick_sort_partition!(rows_sa, I, J, V)
         snd_index = (n_hold_data+1):lastindex(I)
@@ -1527,8 +1530,8 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(A, V, 
 end
 
 function assemble_matrix_with_compressed_snd_and_with_auto_cache!(f, I, J, V, rows, cols)
-    # Time complexity: max(1(global_to_own), 2(N+1)+max(N/2, 1)), Space complexity: N+3N + max(7(global_to_own), 6 + max(8(global_to_own_part[]), 1+min(N/2, 2*(N/2)+1)) + max(8(global_to_own_part[]), 1+1(swap)))
-    # Time complexity: O(5N/2+2), Space complexity: O(4N + N/2+15)
+    # Time complexity: max(1(global_to_own), 2(N+1)), Space complexity: N+3N + max(7(global_to_own), 6 + max(8(global_to_own_part[]), 1+min(N/2, 2*(N/2)+1)) + max(8(global_to_own_part[]), 1+1(swap)))
+    # Time complexity: O(2N+2), Space complexity: O(4N + N/2+15)
     function quick_sort_partition!(part, key, values::Vararg{Any,N}) where {N}
         global_to_own_part = global_to_own(part)
         left_ptr = firstindex(key)
@@ -1541,7 +1544,7 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(f, I, J, V, ro
         end
         if left_ptr > right_ptr
             Tkey = eltype(key)
-            return right_ptr, collect(Tkey, left_ptr:right_ptr)
+            return right_ptr, Tkey[]
         end
         n_change = 1
         left_bound = left_ptr
@@ -1564,12 +1567,13 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(f, I, J, V, ro
         end
         Tkey = eltype(key)
         if right_ptr - left_bound - n_change - n_change <= -1
-            change = collect(Tkey, left_bound:right_ptr)
             left_ptr = left_bound
-            right_ptr = right_bound
             left_bound -= 1
+            change = Vector{Tkey}(undef, right_ptr - left_bound)
+            right_ptr = right_bound
             while true
                 while left_ptr <= right_ptr && global_to_own_part[key[left_ptr]] != 0
+                    change[left_ptr-left_bound] = left_ptr
                     left_ptr += 1
                 end
                 while left_ptr <= right_ptr && global_to_own_part[key[right_ptr]] == 0
@@ -1613,8 +1617,8 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(f, I, J, V, ro
         end
         right_ptr, change
     end
-    # Time complexity: (5N/2+2)(quick_sort_partition!)+N(map_global_to_ghost!)+(3N+R+2C)(sparse)+(NP-1)+(NP-1)+N+NP(length_to_ptrs)+N+NP(rewind_ptrs!)+NlogN(precompute_nzindex!)+N, Space complexity: 3N+N+N+N(rows_sa+cols) + max((N/2+15)(quick_sort_partition!), N/2+7+max((4N+R+2C+15)(sparse), (2N+C)(compressed_snd_data)+1+3N+2(NP-1)+(NP-1)+NP+max(3(length_to_ptrs), 2+N+max(3, 3(rewind_ptrs!), 4(precompute_nzindex!)))))
-    # Time complexity: O(NlogN+19N/2+R+2C+4NP), Space complexity: O(6N + 13N/2+C+4NP+11)
+    # Time complexity: (2N+2)(quick_sort_partition!)+N(map_global_to_ghost!)+(3N+R+2C)(sparse)+(NP-1)+(NP-1)+N+NP(length_to_ptrs)+N+NP(rewind_ptrs!)+NlogN(precompute_nzindex!)+N, Space complexity: 3N+N+N+N(rows_sa+cols) + max((N/2+15)(quick_sort_partition!), N/2+7+max((4N+R+2C+15)(sparse), (2N+C)(compressed_snd_data)+1+3N+2(NP-1)+(NP-1)+NP+max(3(length_to_ptrs), 2+N+max(3, 3(rewind_ptrs!), 4(precompute_nzindex!)))))
+    # Time complexity: O(NlogN+9N+R+2C+4NP), Space complexity: O(6N + 13N/2+C+4NP+11)
     function partition_and_setup_cache_snd!(I, J, V, perm, parts_snd, rows_sa, cols)
         n_hold_data, change_index = quick_sort_partition!(rows_sa, I, J, V)
         snd_index = (n_hold_data+1):lastindex(I)
