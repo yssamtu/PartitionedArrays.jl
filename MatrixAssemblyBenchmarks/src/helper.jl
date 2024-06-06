@@ -1,4 +1,4 @@
-function get_folder_name(params::@NamedTuple{nruns::Int64, cells_per_dir::Tuple{Int64, Int64, Int64}, parts_per_dir::Tuple{Int64, Int64, Int64}})
+function get_folder_name(params::@NamedTuple{nruns::Int64, cells_per_dir::NTuple{N, Int64}, parts_per_dir::NTuple{N, Int64}}) where {N}
     nruns, cells_per_dir, parts_per_dir = params
     cells_per_dir_str = sprint(show, cells_per_dir)
     cells_per_dir_str = replace(cells_per_dir_str, " " => "")
