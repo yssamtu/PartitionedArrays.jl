@@ -66,11 +66,8 @@ function assemble_matrix_no_compressed_snd_and_no_cache!(f, I, J, V, rows, cols)
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
-        sizehint!(I, n_data)
         resize!(J, n_data)
-        sizehint!(J, n_data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         I[rcv_index] = I_rcv.data
         J[rcv_index] = J_rcv.data
@@ -200,11 +197,8 @@ function assemble_matrix_with_compressed_snd_and_no_cache!(f, I, J, V, rows, col
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
-        sizehint!(I, n_data)
         resize!(J, n_data)
-        sizehint!(J, n_data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         I[rcv_index] = I_rcv.data
         J[rcv_index] = J_rcv.data
@@ -365,7 +359,6 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(f, I, J, V
         end
         rewind_ptrs!(ptrs)
         resize!(I_owner, n_snd_data)
-        sizehint!(I_owner, n_snd_data)
         I_snd = JaggedArray(I_snd_data, ptrs)
         J_snd = JaggedArray(J_snd_data, ptrs)
         V_snd = JaggedArray(V_snd_data, ptrs)
@@ -376,11 +369,8 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(f, I, J, V
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
-        sizehint!(I, n_data)
         resize!(J, n_data)
-        sizehint!(J, n_data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         I[rcv_index] = I_rcv.data
         J[rcv_index] = J_rcv.data
@@ -471,7 +461,6 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(A, V, cach
     function store_recv_data!(V, n_hold_data, V_rcv)
         n_data = n_hold_data + length(V_rcv.data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         V[rcv_index] = V_rcv.data
         return
@@ -594,7 +583,6 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(f, I, J,
         end
         rewind_ptrs!(ptrs)
         resize!(I_owner, n_snd_data)
-        sizehint!(I_owner, n_snd_data)
         I_snd = JaggedArray(I_snd_data, ptrs)
         J_snd = JaggedArray(J_snd_data, ptrs)
         V_snd = JaggedArray(V_snd_data, ptrs)
@@ -605,11 +593,8 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(f, I, J,
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
-        sizehint!(I, n_data)
         resize!(J, n_data)
-        sizehint!(J, n_data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         I[rcv_index] = I_rcv.data
         J[rcv_index] = J_rcv.data
@@ -699,7 +684,6 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(A, V, ca
     function store_recv_data!(V, n_hold_data, V_rcv)
         n_data = n_hold_data + length(V_rcv.data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         V[rcv_index] = V_rcv.data
         return
@@ -848,7 +832,6 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(f, I, J, V, rows
         end
         rewind_ptrs!(ptrs)
         resize!(I_owner, n_snd_data)
-        sizehint!(I_owner, n_snd_data)
         I_snd = JaggedArray(I_snd_data, ptrs)
         J_snd = JaggedArray(J_snd_data, ptrs)
         V_snd = JaggedArray(V_snd_data, ptrs)
@@ -859,11 +842,8 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(f, I, J, V, rows
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
-        sizehint!(I, n_data)
         resize!(J, n_data)
-        sizehint!(J, n_data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         I[rcv_index] = I_rcv.data
         J[rcv_index] = J_rcv.data
@@ -961,7 +941,6 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(A, V, cache)
     function store_recv_data!(V, n_hold_data, V_rcv)
         n_data = n_hold_data + length(V_rcv.data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         V[rcv_index] = V_rcv.data
         return
@@ -1092,7 +1071,6 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(f, I, J,
         n_raw_snd_data = length(I_raw_snd_data)
         buffer_size = n_raw_snd_data + n_snd_data
         resize!(perm, buffer_size)
-        sizehint!(perm, buffer_size)
         buffer_perm = view(perm, firstindex(perm):n_raw_snd_data)
         buffer_aux = view(perm, (n_raw_snd_data+1):lastindex(perm))
         ghost_to_global_row = ghost_to_global(rows_sa)
@@ -1111,7 +1089,6 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(f, I, J,
             buffer_perm[i] = buffer_aux[p]
         end
         resize!(perm, n_raw_snd_data)
-        sizehint!(perm, n_raw_snd_data)
         I_snd = JaggedArray(I_snd_data, ptrs)
         J_snd = JaggedArray(J_snd_data, ptrs)
         V_snd = JaggedArray(V_snd_data, ptrs)
@@ -1122,11 +1099,8 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(f, I, J,
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
-        sizehint!(I, n_data)
         resize!(J, n_data)
-        sizehint!(J, n_data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         I[rcv_index] = I_rcv.data
         J[rcv_index] = J_rcv.data
@@ -1218,7 +1192,6 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(A, V, ca
     function store_recv_data!(V, n_hold_data, V_rcv)
         n_data = n_hold_data + length(V_rcv.data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         V[rcv_index] = V_rcv.data
         return
@@ -1336,7 +1309,6 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(f, I, 
         n_raw_snd_data = length(I_raw_snd_data)
         buffer_size = n_raw_snd_data + n_snd_data
         resize!(perm, buffer_size)
-        sizehint!(perm, buffer_size)
         buffer_perm = view(perm, firstindex(perm):n_raw_snd_data)
         buffer_aux = view(perm, (n_raw_snd_data+1):lastindex(perm))
         ghost_to_global_row = ghost_to_global(rows_sa)
@@ -1355,7 +1327,6 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(f, I, 
             buffer_perm[i] = buffer_aux[p]
         end
         resize!(perm, n_raw_snd_data)
-        sizehint!(perm, n_raw_snd_data)
         I_snd = JaggedArray(I_snd_data, ptrs)
         J_snd = JaggedArray(J_snd_data, ptrs)
         V_snd = JaggedArray(V_snd_data, ptrs)
@@ -1366,11 +1337,8 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(f, I, 
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
-        sizehint!(I, n_data)
         resize!(J, n_data)
-        sizehint!(J, n_data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         I[rcv_index] = I_rcv.data
         J[rcv_index] = J_rcv.data
@@ -1461,7 +1429,6 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(A, V, 
     function store_recv_data!(V, n_hold_data, V_rcv)
         n_data = n_hold_data + length(V_rcv.data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         V[rcv_index] = V_rcv.data
         return
@@ -1605,7 +1572,6 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(f, I, J, V, ro
         n_raw_snd_data = length(I_raw_snd_data)
         buffer_size = n_raw_snd_data + n_snd_data
         resize!(perm, buffer_size)
-        sizehint!(perm, buffer_size)
         buffer_perm = view(perm, firstindex(perm):n_raw_snd_data)
         buffer_aux = view(perm, (n_raw_snd_data+1):lastindex(perm))
         ghost_to_global_row = ghost_to_global(rows_sa)
@@ -1624,7 +1590,6 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(f, I, J, V, ro
             buffer_perm[i] = buffer_aux[p]
         end
         resize!(perm, n_raw_snd_data)
-        sizehint!(perm, n_raw_snd_data)
         I_snd = JaggedArray(I_snd_data, ptrs)
         J_snd = JaggedArray(J_snd_data, ptrs)
         V_snd = JaggedArray(V_snd_data, ptrs)
@@ -1635,11 +1600,8 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(f, I, J, V, ro
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
-        sizehint!(I, n_data)
         resize!(J, n_data)
-        sizehint!(J, n_data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         I[rcv_index] = I_rcv.data
         J[rcv_index] = J_rcv.data
@@ -1738,7 +1700,6 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(A, V, cache)
     function store_recv_data!(V, n_hold_data, V_rcv)
         n_data = n_hold_data + length(V_rcv.data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         V[rcv_index] = V_rcv.data
         return
@@ -1910,7 +1871,6 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache_time!(f, I,
         end
         rewind_ptrs!(ptrs)
         resize!(I_owner, n_snd_data)
-        sizehint!(I_owner, n_snd_data)
         I_snd = JaggedArray(I_snd_data, ptrs)
         J_snd = JaggedArray(J_snd_data, ptrs)
         V_snd = JaggedArray(V_snd_data, ptrs)
@@ -1921,11 +1881,8 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache_time!(f, I,
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
-        sizehint!(I, n_data)
         resize!(J, n_data)
-        sizehint!(J, n_data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         I[rcv_index] = I_rcv.data
         J[rcv_index] = J_rcv.data
@@ -2023,7 +1980,6 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache_time!(A, V,
     function store_recv_data!(V, n_hold_data, V_rcv)
         n_data = n_hold_data + length(V_rcv.data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         V[rcv_index] = V_rcv.data
         return
@@ -2153,7 +2109,6 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache_time!(f, 
         end
         rewind_ptrs!(ptrs)
         resize!(I_owner, n_snd_data)
-        sizehint!(I_owner, n_snd_data)
         I_snd = JaggedArray(I_snd_data, ptrs)
         J_snd = JaggedArray(J_snd_data, ptrs)
         V_snd = JaggedArray(V_snd_data, ptrs)
@@ -2164,11 +2119,8 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache_time!(f, 
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
-        sizehint!(I, n_data)
         resize!(J, n_data)
-        sizehint!(J, n_data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         I[rcv_index] = I_rcv.data
         J[rcv_index] = J_rcv.data
@@ -2265,7 +2217,6 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache_time!(A, 
     function store_recv_data!(V, n_hold_data, V_rcv)
         n_data = n_hold_data + length(V_rcv.data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         V[rcv_index] = V_rcv.data
         return
@@ -2421,7 +2372,6 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache_time!(f, I, J, V,
         end
         rewind_ptrs!(ptrs)
         resize!(I_owner, n_snd_data)
-        sizehint!(I_owner, n_snd_data)
         I_snd = JaggedArray(I_snd_data, ptrs)
         J_snd = JaggedArray(J_snd_data, ptrs)
         V_snd = JaggedArray(V_snd_data, ptrs)
@@ -2432,11 +2382,8 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache_time!(f, I, J, V,
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
-        sizehint!(I, n_data)
         resize!(J, n_data)
-        sizehint!(J, n_data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         I[rcv_index] = I_rcv.data
         J[rcv_index] = J_rcv.data
@@ -2541,7 +2488,6 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache_time!(A, V, cache
     function store_recv_data!(V, n_hold_data, V_rcv)
         n_data = n_hold_data + length(V_rcv.data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         V[rcv_index] = V_rcv.data
         return
@@ -2679,7 +2625,6 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache_time!(f, 
         n_raw_snd_data = length(I_raw_snd_data)
         buffer_size = n_raw_snd_data + n_snd_data
         resize!(perm, buffer_size)
-        sizehint!(perm, buffer_size)
         buffer_perm = view(perm, firstindex(perm):n_raw_snd_data)
         buffer_aux = view(perm, (n_raw_snd_data+1):lastindex(perm))
         ghost_to_global_row = ghost_to_global(rows_sa)
@@ -2698,7 +2643,6 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache_time!(f, 
             buffer_perm[i] = buffer_aux[p]
         end
         resize!(perm, n_raw_snd_data)
-        sizehint!(perm, n_raw_snd_data)
         I_snd = JaggedArray(I_snd_data, ptrs)
         J_snd = JaggedArray(J_snd_data, ptrs)
         V_snd = JaggedArray(V_snd_data, ptrs)
@@ -2709,11 +2653,8 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache_time!(f, 
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
-        sizehint!(I, n_data)
         resize!(J, n_data)
-        sizehint!(J, n_data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         I[rcv_index] = I_rcv.data
         J[rcv_index] = J_rcv.data
@@ -2812,7 +2753,6 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache_time!(A, 
     function store_recv_data!(V, n_hold_data, V_rcv)
         n_data = n_hold_data + length(V_rcv.data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         V[rcv_index] = V_rcv.data
         return
@@ -2937,7 +2877,6 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache_time!(f
         n_raw_snd_data = length(I_raw_snd_data)
         buffer_size = n_raw_snd_data + n_snd_data
         resize!(perm, buffer_size)
-        sizehint!(perm, buffer_size)
         buffer_perm = view(perm, firstindex(perm):n_raw_snd_data)
         buffer_aux = view(perm, (n_raw_snd_data+1):lastindex(perm))
         ghost_to_global_row = ghost_to_global(rows_sa)
@@ -2956,7 +2895,6 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache_time!(f
             buffer_perm[i] = buffer_aux[p]
         end
         resize!(perm, n_raw_snd_data)
-        sizehint!(perm, n_raw_snd_data)
         I_snd = JaggedArray(I_snd_data, ptrs)
         J_snd = JaggedArray(J_snd_data, ptrs)
         V_snd = JaggedArray(V_snd_data, ptrs)
@@ -2967,11 +2905,8 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache_time!(f
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
-        sizehint!(I, n_data)
         resize!(J, n_data)
-        sizehint!(J, n_data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         I[rcv_index] = I_rcv.data
         J[rcv_index] = J_rcv.data
@@ -3069,7 +3004,6 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache_time!(A
     function store_recv_data!(V, n_hold_data, V_rcv)
         n_data = n_hold_data + length(V_rcv.data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         V[rcv_index] = V_rcv.data
         return
@@ -3219,7 +3153,6 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache_time!(f, I, J, 
         n_raw_snd_data = length(I_raw_snd_data)
         buffer_size = n_raw_snd_data + n_snd_data
         resize!(perm, buffer_size)
-        sizehint!(perm, buffer_size)
         buffer_perm = view(perm, firstindex(perm):n_raw_snd_data)
         buffer_aux = view(perm, (n_raw_snd_data+1):lastindex(perm))
         ghost_to_global_row = ghost_to_global(rows_sa)
@@ -3238,7 +3171,6 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache_time!(f, I, J, 
             buffer_perm[i] = buffer_aux[p]
         end
         resize!(perm, n_raw_snd_data)
-        sizehint!(perm, n_raw_snd_data)
         I_snd = JaggedArray(I_snd_data, ptrs)
         J_snd = JaggedArray(J_snd_data, ptrs)
         V_snd = JaggedArray(V_snd_data, ptrs)
@@ -3249,11 +3181,8 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache_time!(f, I, J, 
     function store_recv_data!(I, J, V, n_hold_data, I_rcv, J_rcv, V_rcv)
         n_data = n_hold_data + length(I_rcv.data)
         resize!(I, n_data)
-        sizehint!(I, n_data)
         resize!(J, n_data)
-        sizehint!(J, n_data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         I[rcv_index] = I_rcv.data
         J[rcv_index] = J_rcv.data
@@ -3359,7 +3288,6 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache_time!(A, V, cac
     function store_recv_data!(V, n_hold_data, V_rcv)
         n_data = n_hold_data + length(V_rcv.data)
         resize!(V, n_data)
-        sizehint!(V, n_data)
         rcv_index = (n_hold_data+1):n_data
         V[rcv_index] = V_rcv.data
         return
