@@ -1931,46 +1931,60 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache_time!(f, I,
     time_2 = @elapsed begin
         rows_sa = map(union_ghost, rows, I, I_owner)
     end
-    parts_snd, parts_rcv = assembly_neighbors(rows_sa)
     time_3 = @elapsed begin
-        I_snd_buf, J_snd_buf, V_snd_buf, hold_data_size, change_snd, perm_snd = map(partition_and_setup_cache_snd!, I, J, V, I_owner, parts_snd, rows_sa) |> tuple_of_arrays
+        parts_snd, parts_rcv = assembly_neighbors(rows_sa)
     end
     time_4 = @elapsed begin
+        I_snd_buf, J_snd_buf, V_snd_buf, hold_data_size, change_snd, perm_snd = map(partition_and_setup_cache_snd!, I, J, V, I_owner, parts_snd, rows_sa) |> tuple_of_arrays
+    end
+    time_5 = @elapsed begin
         graph = ExchangeGraph(parts_snd, parts_rcv)
     end
-    t_I = exchange(I_snd_buf, graph)
-    t_J = exchange(J_snd_buf, graph)
-    t_V = exchange(V_snd_buf, graph)
+    time_6 = @elapsed begin
+        t_I = exchange(I_snd_buf, graph)
+    end
+    time_7 = @elapsed begin
+        t_J = exchange(J_snd_buf, graph)
+    end
+    time_8 = @elapsed begin
+        t_V = exchange(V_snd_buf, graph)
+    end
     # @async begin
-        I_rcv_buf = fetch(t_I)
-        J_rcv_buf = fetch(t_J)
-        V_rcv_buf = fetch(t_V)
-        time_5 = @elapsed begin
-            map(store_recv_data!, I, J, V, hold_data_size, I_rcv_buf, J_rcv_buf, V_rcv_buf)
-        end
-        time_6 = @elapsed begin
-            rows_fa = rows
-        end
-        time_7 = @elapsed begin
-            J_owner = find_owner(cols, J)
-        end
-        time_8 = @elapsed begin
-            cols_fa = map(union_ghost, cols, J, J_owner)
-        end
         time_9 = @elapsed begin
-            vals_fa, own_data_size, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
+            I_rcv_buf = fetch(t_I)
         end
         time_10 = @elapsed begin
-            cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse)
+            J_rcv_buf = fetch(t_J)
         end
         time_11 = @elapsed begin
-            assembled = true
+            V_rcv_buf = fetch(t_V)
         end
         time_12 = @elapsed begin
+            map(store_recv_data!, I, J, V, hold_data_size, I_rcv_buf, J_rcv_buf, V_rcv_buf)
+        end
+        time_13 = @elapsed begin
+            rows_fa = rows
+        end
+        time_14 = @elapsed begin
+            J_owner = find_owner(cols, J)
+        end
+        time_15 = @elapsed begin
+            cols_fa = map(union_ghost, cols, J, J_owner)
+        end
+        time_16 = @elapsed begin
+            vals_fa, own_data_size, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
+        end
+        time_17 = @elapsed begin
+            cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse)
+        end
+        time_18 = @elapsed begin
+            assembled = true
+        end
+        time_19 = @elapsed begin
             PSparseMatrix(vals_fa, rows_fa, cols_fa, assembled), cache
         end
     # end
-    [time_1, time_2, time_3, time_4, time_5, time_6, time_7, time_8, time_9, time_10, time_11, time_12]
+    [time_1, time_2, time_3, time_4, time_5, time_6, time_7, time_8, time_9, time_10, time_11, time_12, time_13, time_14, time_15, time_16, time_17, time_18, time_19]
 end
 
 function assemble_matrix_no_compressed_snd_and_with_int_vector_cache_time!(A, V, cache)
@@ -2022,18 +2036,22 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache_time!(A, V,
     time_2 = @elapsed begin
         map(partition_and_setup_cache_snd!, V_snd_buf, V, hold_data_size, change_snd, perm_snd)
     end
-    t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
+    time_3 = @elapsed begin
+        t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
+    end
     # @async begin
-        fetch(t_V)
-        time_3 = @elapsed begin
+        time_4 = @elapsed begin
+            fetch(t_V)
+        end
+        time_5 = @elapsed begin
             map(store_recv_data!, V, hold_data_size, V_rcv_buf)
         end
-        time_4 = @elapsed begin
+        time_6 = @elapsed begin
             map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
         end
         A
     # end
-    [time_1, time_2, time_3, time_4]
+    [time_1, time_2, time_3, time_4, time_5, time_6]
 end
 
 function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache_time!(f, I, J, V, rows, cols)
@@ -2189,46 +2207,60 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache_time!(f, 
     time_2 = @elapsed begin
         rows_sa = map(union_ghost, rows, I, I_owner)
     end
-    parts_snd, parts_rcv = assembly_neighbors(rows_sa)
     time_3 = @elapsed begin
-        I_snd_buf, J_snd_buf, V_snd_buf, hold_data_size, change_snd, perm_snd = map(partition_and_setup_cache_snd!, I, J, V, I_owner, parts_snd, rows_sa) |> tuple_of_arrays
+        parts_snd, parts_rcv = assembly_neighbors(rows_sa)
     end
     time_4 = @elapsed begin
+        I_snd_buf, J_snd_buf, V_snd_buf, hold_data_size, change_snd, perm_snd = map(partition_and_setup_cache_snd!, I, J, V, I_owner, parts_snd, rows_sa) |> tuple_of_arrays
+    end
+    time_5 = @elapsed begin
         graph = ExchangeGraph(parts_snd, parts_rcv)
     end
-    t_I = exchange(I_snd_buf, graph)
-    t_J = exchange(J_snd_buf, graph)
-    t_V = exchange(V_snd_buf, graph)
+    time_6 = @elapsed begin
+        t_I = exchange(I_snd_buf, graph)
+    end
+    time_7 = @elapsed begin
+        t_J = exchange(J_snd_buf, graph)
+    end
+    time_8 = @elapsed begin
+        t_V = exchange(V_snd_buf, graph)
+    end
     # @async begin
-        I_rcv_buf = fetch(t_I)
-        J_rcv_buf = fetch(t_J)
-        V_rcv_buf = fetch(t_V)
-        time_5 = @elapsed begin
-            map(store_recv_data!, I, J, V, hold_data_size, I_rcv_buf, J_rcv_buf, V_rcv_buf)
-        end
-        time_6 = @elapsed begin
-        rows_fa = rows
-        end
-        time_7 = @elapsed begin
-            J_owner = find_owner(cols, J)
-        end
-        time_8 = @elapsed begin
-            cols_fa = map(union_ghost, cols, J, J_owner)
-        end
         time_9 = @elapsed begin
-            vals_fa, own_data_size, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
+            I_rcv_buf = fetch(t_I)
         end
         time_10 = @elapsed begin
-        cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse)
+            J_rcv_buf = fetch(t_J)
         end
         time_11 = @elapsed begin
-            assembled = true
+            V_rcv_buf = fetch(t_V)
         end
         time_12 = @elapsed begin
+            map(store_recv_data!, I, J, V, hold_data_size, I_rcv_buf, J_rcv_buf, V_rcv_buf)
+        end
+        time_13 = @elapsed begin
+            rows_fa = rows
+        end
+        time_14 = @elapsed begin
+            J_owner = find_owner(cols, J)
+        end
+        time_15 = @elapsed begin
+            cols_fa = map(union_ghost, cols, J, J_owner)
+        end
+        time_16 = @elapsed begin
+            vals_fa, own_data_size, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
+        end
+        time_17 = @elapsed begin
+            cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse)
+        end
+        time_18 = @elapsed begin
+            assembled = true
+        end
+        time_19 = @elapsed begin
             PSparseMatrix(vals_fa, rows_fa, cols_fa, assembled), cache
         end
     # end
-    [time_1, time_2, time_3, time_4, time_5, time_6, time_7, time_8, time_9, time_10, time_11, time_12]
+    [time_1, time_2, time_3, time_4, time_5, time_6, time_7, time_8, time_9, time_10, time_11, time_12, time_13, time_14, time_15, time_16, time_17, time_18, time_19]
 end
 
 function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache_time!(A, V, cache)
@@ -2279,18 +2311,22 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache_time!(A, 
     time_2 = @elapsed begin
         map(partition_and_setup_cache_snd!, V_snd_buf, V, hold_data_size, change_snd, perm_snd)
     end
-    t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
+    time_3 = @elapsed begin
+        t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
+    end
     # @async begin
-        fetch(t_V)
-        time_3 = @elapsed begin
+        time_4 = @elapsed begin
+            fetch(t_V)
+        end
+        time_5 = @elapsed begin
             map(store_recv_data!, V, hold_data_size, V_rcv_buf)
         end
-        time_4 = @elapsed begin
+        time_6 = @elapsed begin
             map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
         end
         A
     # end
-    [time_1, time_2, time_3, time_4]
+    [time_1, time_2, time_3, time_4, time_5, time_6]
 end
 
 function assemble_matrix_no_compressed_snd_and_with_auto_cache_time!(f, I, J, V, rows, cols)
@@ -2472,46 +2508,60 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache_time!(f, I, J, V,
     time_2 = @elapsed begin
         rows_sa = map(union_ghost, rows, I, I_owner)
     end
-    parts_snd, parts_rcv = assembly_neighbors(rows_sa)
     time_3 = @elapsed begin
-        I_snd_buf, J_snd_buf, V_snd_buf, hold_data_size, change_snd, perm_snd = map(partition_and_setup_cache_snd!, I, J, V, I_owner, parts_snd, rows_sa) |> tuple_of_arrays
+        parts_snd, parts_rcv = assembly_neighbors(rows_sa)
     end
     time_4 = @elapsed begin
+        I_snd_buf, J_snd_buf, V_snd_buf, hold_data_size, change_snd, perm_snd = map(partition_and_setup_cache_snd!, I, J, V, I_owner, parts_snd, rows_sa) |> tuple_of_arrays
+    end
+    time_5 = @elapsed begin
         graph = ExchangeGraph(parts_snd, parts_rcv)
     end
-    t_I = exchange(I_snd_buf, graph)
-    t_J = exchange(J_snd_buf, graph)
-    t_V = exchange(V_snd_buf, graph)
+    time_6 = @elapsed begin
+        t_I = exchange(I_snd_buf, graph)
+    end
+    time_7 = @elapsed begin
+        t_J = exchange(J_snd_buf, graph)
+    end
+    time_8 = @elapsed begin
+        t_V = exchange(V_snd_buf, graph)
+    end
     # @async begin
-        I_rcv_buf = fetch(t_I)
-        J_rcv_buf = fetch(t_J)
-        V_rcv_buf = fetch(t_V)
-        time_5 = @elapsed begin
-            map(store_recv_data!, I, J, V, hold_data_size, I_rcv_buf, J_rcv_buf, V_rcv_buf)
-        end
-        time_6 = @elapsed begin
-            rows_fa = rows
-        end
-        time_7 = @elapsed begin
-            J_owner = find_owner(cols, J)
-        end
-        time_8 = @elapsed begin
-            cols_fa = map(union_ghost, cols, J, J_owner)
-        end
         time_9 = @elapsed begin
-            vals_fa, own_data_size, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
+            I_rcv_buf = fetch(t_I)
         end
         time_10 = @elapsed begin
-            cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse)
+            J_rcv_buf = fetch(t_J)
         end
         time_11 = @elapsed begin
-            assembled = true
+            V_rcv_buf = fetch(t_V)
         end
         time_12 = @elapsed begin
+            map(store_recv_data!, I, J, V, hold_data_size, I_rcv_buf, J_rcv_buf, V_rcv_buf)
+        end
+        time_13 = @elapsed begin
+            rows_fa = rows
+        end
+        time_14 = @elapsed begin
+            J_owner = find_owner(cols, J)
+        end
+        time_15 = @elapsed begin
+            cols_fa = map(union_ghost, cols, J, J_owner)
+        end
+        time_16 = @elapsed begin
+            vals_fa, own_data_size, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
+        end
+        time_17 = @elapsed begin
+            cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse)
+        end
+        time_18 = @elapsed begin
+            assembled = true
+        end
+        time_19 = @elapsed begin
             PSparseMatrix(vals_fa, rows_fa, cols_fa, assembled), cache
         end
     # end
-    [time_1, time_2, time_3, time_4, time_5, time_6, time_7, time_8, time_9, time_10, time_11, time_12]
+    [time_1, time_2, time_3, time_4, time_5, time_6, time_7, time_8, time_9, time_10, time_11, time_12, time_13, time_14, time_15, time_16, time_17, time_18, time_19]
 end
 
 function assemble_matrix_no_compressed_snd_and_with_auto_cache_time!(A, V, cache)
@@ -2585,18 +2635,22 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache_time!(A, V, cache
     time_2 = @elapsed begin
         map(partition_and_setup_cache_snd!, V_snd_buf, V, hold_data_size, change_snd, perm_snd)
     end
-    t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
+    time_3 = @elapsed begin
+        t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
+    end
     # @async begin
-        fetch(t_V)
-        time_3 = @elapsed begin
+        time_4 = @elapsed begin
+            fetch(t_V)
+        end
+        time_5 = @elapsed begin
             map(store_recv_data!, V, hold_data_size, V_rcv_buf)
         end
-        time_4 = @elapsed begin
+        time_6 = @elapsed begin
             map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
         end
         A
     # end
-    [time_1, time_2, time_3, time_4]
+    [time_1, time_2, time_3, time_4, time_5, time_6]
 end
 
 function assemble_matrix_with_compressed_snd_and_with_int_vector_cache_time!(f, I, J, V, rows, cols)
@@ -2763,46 +2817,60 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache_time!(f, 
     time_2 = @elapsed begin
         rows_sa = map(union_ghost, rows, I, I_owner)
     end
-    parts_snd, parts_rcv = assembly_neighbors(rows_sa)
     time_3 = @elapsed begin
-        I_snd_buf, J_snd_buf, V_snd_buf, hold_data_size, change_snd, perm_snd = map(partition_and_setup_cache_snd!, I, J, V, I_owner, parts_snd, rows_sa, cols) |> tuple_of_arrays
+        parts_snd, parts_rcv = assembly_neighbors(rows_sa)
     end
     time_4 = @elapsed begin
+        I_snd_buf, J_snd_buf, V_snd_buf, hold_data_size, change_snd, perm_snd = map(partition_and_setup_cache_snd!, I, J, V, I_owner, parts_snd, rows_sa, cols) |> tuple_of_arrays
+    end
+    time_5 = @elapsed begin
         graph = ExchangeGraph(parts_snd, parts_rcv)
     end
-    t_I = exchange(I_snd_buf, graph)
-    t_J = exchange(J_snd_buf, graph)
-    t_V = exchange(V_snd_buf, graph)
+    time_6 = @elapsed begin
+        t_I = exchange(I_snd_buf, graph)
+    end
+    time_7 = @elapsed begin
+        t_J = exchange(J_snd_buf, graph)
+    end
+    time_8 = @elapsed begin
+        t_V = exchange(V_snd_buf, graph)
+    end
     # @async begin
-        I_rcv_buf = fetch(t_I)
-        J_rcv_buf = fetch(t_J)
-        V_rcv_buf = fetch(t_V)
-        time_5 = @elapsed begin
-            map(store_recv_data!, I, J, V, hold_data_size, I_rcv_buf, J_rcv_buf, V_rcv_buf)
-        end
-        time_6 = @elapsed begin
-            rows_fa = rows
-        end
-        time_7 = @elapsed begin
-            J_owner = find_owner(cols, J)
-        end
-        time_8 = @elapsed begin
-            cols_fa = map(union_ghost, cols, J, J_owner)
-        end
         time_9 = @elapsed begin
-            vals_fa, own_data_size, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
+            I_rcv_buf = fetch(t_I)
         end
         time_10 = @elapsed begin
-            cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse)
+            J_rcv_buf = fetch(t_J)
         end
         time_11 = @elapsed begin
-            assembled = true
+            V_rcv_buf = fetch(t_V)
         end
         time_12 = @elapsed begin
+            map(store_recv_data!, I, J, V, hold_data_size, I_rcv_buf, J_rcv_buf, V_rcv_buf)
+        end
+        time_13 = @elapsed begin
+            rows_fa = rows
+        end
+        time_14 = @elapsed begin
+            J_owner = find_owner(cols, J)
+        end
+        time_15 = @elapsed begin
+            cols_fa = map(union_ghost, cols, J, J_owner)
+        end
+        time_16 = @elapsed begin
+            vals_fa, own_data_size, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
+        end
+        time_17 = @elapsed begin
+            cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse)
+        end
+        time_18 = @elapsed begin
+            assembled = true
+        end
+        time_19 = @elapsed begin
             PSparseMatrix(vals_fa, rows_fa, cols_fa, assembled), cache
         end
     # end
-    [time_1, time_2, time_3, time_4, time_5, time_6, time_7, time_8, time_9, time_10, time_11, time_12]
+    [time_1, time_2, time_3, time_4, time_5, time_6, time_7, time_8, time_9, time_10, time_11, time_12, time_13, time_14, time_15, time_16, time_17, time_18, time_19]
 end
 
 function assemble_matrix_with_compressed_snd_and_with_int_vector_cache_time!(A, V, cache)
@@ -2855,18 +2923,22 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache_time!(A, 
     time_2 = @elapsed begin
         map(partition_and_setup_cache_snd!, V_snd_buf, V, hold_data_size, change_snd, perm_snd)
     end
-    t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
+    time_3 = @elapsed begin
+        t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
+    end
     # @async begin
-        fetch(t_V)
-        time_3 = @elapsed begin
+        time_4 = @elapsed begin
+            fetch(t_V)
+        end
+        time_5 = @elapsed begin
             map(store_recv_data!, V, hold_data_size, V_rcv_buf)
         end
-        time_4 = @elapsed begin
+        time_6 = @elapsed begin
             map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
         end
         A
     # end
-    [time_1, time_2, time_3, time_4]
+    [time_1, time_2, time_3, time_4, time_5, time_6]
 end
 
 function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache_time!(f, I, J, V, rows, cols)
@@ -3035,46 +3107,60 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache_time!(f
     time_2 = @elapsed begin
         rows_sa = map(union_ghost, rows, I, I_owner)
     end
-    parts_snd, parts_rcv = assembly_neighbors(rows_sa)
     time_3 = @elapsed begin
-        I_snd_buf, J_snd_buf, V_snd_buf, hold_data_size, change_snd, perm_snd = map(partition_and_setup_cache_snd!, I, J, V, I_owner, parts_snd, rows_sa, cols) |> tuple_of_arrays
+        parts_snd, parts_rcv = assembly_neighbors(rows_sa)
     end
     time_4 = @elapsed begin
+        I_snd_buf, J_snd_buf, V_snd_buf, hold_data_size, change_snd, perm_snd = map(partition_and_setup_cache_snd!, I, J, V, I_owner, parts_snd, rows_sa, cols) |> tuple_of_arrays
+    end
+    time_5 = @elapsed begin
         graph = ExchangeGraph(parts_snd, parts_rcv)
     end
-    t_I = exchange(I_snd_buf, graph)
-    t_J = exchange(J_snd_buf, graph)
-    t_V = exchange(V_snd_buf, graph)
+    time_6 = @elapsed begin
+        t_I = exchange(I_snd_buf, graph)
+    end
+    time_7 = @elapsed begin
+        t_J = exchange(J_snd_buf, graph)
+    end
+    time_8 = @elapsed begin
+        t_V = exchange(V_snd_buf, graph)
+    end
     # @async begin
-        I_rcv_buf = fetch(t_I)
-        J_rcv_buf = fetch(t_J)
-        V_rcv_buf = fetch(t_V)
-        time_5 = @elapsed begin
-            map(store_recv_data!, I, J, V, hold_data_size, I_rcv_buf, J_rcv_buf, V_rcv_buf)
-        end
-        time_6 = @elapsed begin
-            rows_fa = rows
-        end
-        time_7 = @elapsed begin
-            J_owner = find_owner(cols, J)
-        end
-        time_8 = @elapsed begin
-            cols_fa = map(union_ghost, cols, J, J_owner)
-        end
         time_9 = @elapsed begin
-            vals_fa, own_data_size, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
+            I_rcv_buf = fetch(t_I)
         end
         time_10 = @elapsed begin
-            cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse)
+            J_rcv_buf = fetch(t_J)
         end
         time_11 = @elapsed begin
-            assembled = true
+            V_rcv_buf = fetch(t_V)
         end
         time_12 = @elapsed begin
+            map(store_recv_data!, I, J, V, hold_data_size, I_rcv_buf, J_rcv_buf, V_rcv_buf)
+        end
+        time_13 = @elapsed begin
+            rows_fa = rows
+        end
+        time_14 = @elapsed begin
+            J_owner = find_owner(cols, J)
+        end
+        time_15 = @elapsed begin
+            cols_fa = map(union_ghost, cols, J, J_owner)
+        end
+        time_16 = @elapsed begin
+            vals_fa, own_data_size, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
+        end
+        time_17 = @elapsed begin
+            cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse)
+        end
+        time_18 = @elapsed begin
+            assembled = true
+        end
+        time_19 = @elapsed begin
             PSparseMatrix(vals_fa, rows_fa, cols_fa, assembled), cache
         end
     # end
-    [time_1, time_2, time_3, time_4, time_5, time_6, time_7, time_8, time_9, time_10, time_11, time_12]
+    [time_1, time_2, time_3, time_4, time_5, time_6, time_7, time_8, time_9, time_10, time_11, time_12, time_13, time_14, time_15, time_16, time_17, time_18, time_19]
 end
 
 function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache_time!(A, V, cache)
@@ -3126,17 +3212,21 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache_time!(A
     time_2 = @elapsed begin
         map(partition_and_setup_cache_snd!, V_snd_buf, V, hold_data_size, change_snd, perm_snd)
     end
-    t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
+    time_3 = @elapsed begin
+        t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
+    end
     # @async begin
-        fetch(t_V)
-        time_3 = @elapsed begin
+        time_4 = @elapsed begin
+            fetch(t_V)
+        end
+        time_5 = @elapsed begin
             map(store_recv_data!, V, hold_data_size, V_rcv_buf)
         end
-        time_4 = @elapsed begin
+        time_6 = @elapsed begin
             map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
         end
     # end
-    [time_1, time_2, time_3, time_4]
+    [time_1, time_2, time_3, time_4, time_5, time_6]
 end
 
 function assemble_matrix_with_compressed_snd_and_with_auto_cache_time!(f, I, J, V, rows, cols)
@@ -3331,46 +3421,60 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache_time!(f, I, J, 
     time_2 = @elapsed begin
         rows_sa = map(union_ghost, rows, I, I_owner)
     end
-    parts_snd, parts_rcv = assembly_neighbors(rows_sa)
     time_3 = @elapsed begin
-        I_snd_buf, J_snd_buf, V_snd_buf, hold_data_size, change_snd, perm_snd = map(partition_and_setup_cache_snd!, I, J, V, I_owner, parts_snd, rows_sa, cols) |> tuple_of_arrays
+        parts_snd, parts_rcv = assembly_neighbors(rows_sa)
     end
     time_4 = @elapsed begin
+        I_snd_buf, J_snd_buf, V_snd_buf, hold_data_size, change_snd, perm_snd = map(partition_and_setup_cache_snd!, I, J, V, I_owner, parts_snd, rows_sa, cols) |> tuple_of_arrays
+    end
+    time_5 = @elapsed begin
         graph = ExchangeGraph(parts_snd, parts_rcv)
     end
-    t_I = exchange(I_snd_buf, graph)
-    t_J = exchange(J_snd_buf, graph)
-    t_V = exchange(V_snd_buf, graph)
+    time_6 = @elapsed begin
+        t_I = exchange(I_snd_buf, graph)
+    end
+    time_7 = @elapsed begin
+        t_J = exchange(J_snd_buf, graph)
+    end
+    time_8 = @elapsed begin
+        t_V = exchange(V_snd_buf, graph)
+    end
     # @async begin
-        I_rcv_buf = fetch(t_I)
-        J_rcv_buf = fetch(t_J)
-        V_rcv_buf = fetch(t_V)
-        time_5 = @elapsed begin
-            map(store_recv_data!, I, J, V, hold_data_size, I_rcv_buf, J_rcv_buf, V_rcv_buf)
-        end
-        time_6 = @elapsed begin
-            rows_fa = rows
-        end
-        time_7 = @elapsed begin
-            J_owner = find_owner(cols, J)
-        end
-        time_8 = @elapsed begin
-            cols_fa = map(union_ghost, cols, J, J_owner)
-        end
         time_9 = @elapsed begin
-            vals_fa, own_data_size, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
+            I_rcv_buf = fetch(t_I)
         end
         time_10 = @elapsed begin
-            cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse)
+            J_rcv_buf = fetch(t_J)
         end
         time_11 = @elapsed begin
-            assembled = true
+            V_rcv_buf = fetch(t_V)
         end
         time_12 = @elapsed begin
+            map(store_recv_data!, I, J, V, hold_data_size, I_rcv_buf, J_rcv_buf, V_rcv_buf)
+        end
+        time_13 = @elapsed begin
+            rows_fa = rows
+        end
+        time_14 = @elapsed begin
+            J_owner = find_owner(cols, J)
+        end
+        time_15 = @elapsed begin
+            cols_fa = map(union_ghost, cols, J, J_owner)
+        end
+        time_16 = @elapsed begin
+            vals_fa, own_data_size, change_sparse, perm_sparse = map(split_and_compress!, I, J, V, J_owner, rows_fa, cols_fa) |> tuple_of_arrays
+        end
+        time_17 = @elapsed begin
+            cache = (; graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse)
+        end
+        time_18 = @elapsed begin
+            assembled = true
+        end
+        time_19 = @elapsed begin
             PSparseMatrix(vals_fa, rows_fa, cols_fa, assembled), cache
         end
     # end
-    [time_1, time_2, time_3, time_4, time_5, time_6, time_7, time_8, time_9, time_10, time_11, time_12]
+    [time_1, time_2, time_3, time_4, time_5, time_6, time_7, time_8, time_9, time_10, time_11, time_12, time_13, time_14, time_15, time_16, time_17, time_18, time_19]
 end
 
 function assemble_matrix_with_compressed_snd_and_with_auto_cache_time!(A, V, cache)
@@ -3445,16 +3549,20 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache_time!(A, V, cac
     time_2 = @elapsed begin
         map(partition_and_setup_cache_snd!, V_snd_buf, V, hold_data_size, change_snd, perm_snd)
     end
-    t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
+    time_3 = @elapsed begin
+        t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
+    end
     # @async begin
-        fetch(t_V)
-        time_3 = @elapsed begin
+        time_4 = @elapsed begin
+            fetch(t_V)
+        end
+        time_5 = @elapsed begin
             map(store_recv_data!, V, hold_data_size, V_rcv_buf)
         end
-        time_4 = @elapsed begin
+        time_6 = @elapsed begin
             map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
         end
         A
     # end
-    [time_1, time_2, time_3, time_4]
+    [time_1, time_2, time_3, time_4, time_5, time_6]
 end
