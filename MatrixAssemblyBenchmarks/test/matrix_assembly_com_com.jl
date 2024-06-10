@@ -1957,7 +1957,7 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache_time!(f, I,
         assembled = true
         PSparseMatrix(vals_fa, rows_fa, cols_fa, assembled), cache
     end
-    [compute_time+communi_time, compute_time, communi_time]
+    [compute_time, communi_time]
 end
 
 function assemble_matrix_no_compressed_snd_and_with_int_vector_cache_time!(A, V, cache)
@@ -2019,7 +2019,7 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache_time!(A, V,
         map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
         A
     end
-    [compute_time+communi_time, compute_time, communi_time]
+    [compute_time, communi_time]
 end
 
 function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache_time!(f, I, J, V, rows, cols)
@@ -2201,7 +2201,7 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache_time!(f, 
         assembled = true
         PSparseMatrix(vals_fa, rows_fa, cols_fa, assembled), cache
     end
-    [compute_time+communi_time, compute_time, communi_time]
+    [compute_time, communi_time]
 end
 
 function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache_time!(A, V, cache)
@@ -2262,7 +2262,7 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache_time!(A, 
         map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
         A
     end
-    [compute_time+communi_time, compute_time, communi_time]
+    [compute_time, communi_time]
 end
 
 function assemble_matrix_no_compressed_snd_and_with_auto_cache_time!(f, I, J, V, rows, cols)
@@ -2470,7 +2470,7 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache_time!(f, I, J, V,
         assembled = true
         PSparseMatrix(vals_fa, rows_fa, cols_fa, assembled), cache
     end
-    [compute_time+communi_time, compute_time, communi_time]
+    [compute_time, communi_time]
 end
 
 function assemble_matrix_no_compressed_snd_and_with_auto_cache_time!(A, V, cache)
@@ -2554,7 +2554,7 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache_time!(A, V, cache
         map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
         A
     end
-    [compute_time+communi_time, compute_time, communi_time]
+    [compute_time, communi_time]
 end
 
 function assemble_matrix_with_compressed_snd_and_with_int_vector_cache_time!(f, I, J, V, rows, cols)
@@ -2747,7 +2747,7 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache_time!(f, 
         assembled = true
         PSparseMatrix(vals_fa, rows_fa, cols_fa, assembled), cache
     end
-    [compute_time+communi_time, compute_time, communi_time]
+    [compute_time, communi_time]
 end
 
 function assemble_matrix_with_compressed_snd_and_with_int_vector_cache_time!(A, V, cache)
@@ -2810,7 +2810,7 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache_time!(A, 
         map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
         A
     end
-    [compute_time+communi_time, compute_time, communi_time]
+    [compute_time, communi_time]
 end
 
 function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache_time!(f, I, J, V, rows, cols)
@@ -3005,7 +3005,7 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache_time!(f
         assembled = true
         PSparseMatrix(vals_fa, rows_fa, cols_fa, assembled), cache
     end
-    [compute_time+communi_time, compute_time, communi_time]
+    [compute_time, communi_time]
 end
 
 function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache_time!(A, V, cache)
@@ -3067,7 +3067,7 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache_time!(A
         map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
         A
     end
-    [compute_time+communi_time, compute_time, communi_time]
+    [compute_time, communi_time]
 end
 
 function assemble_matrix_with_compressed_snd_and_with_auto_cache_time!(f, I, J, V, rows, cols)
@@ -3288,7 +3288,7 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache_time!(f, I, J, 
         assembled = true
         PSparseMatrix(vals_fa, rows_fa, cols_fa, assembled), cache
     end
-    [compute_time+communi_time, compute_time, communi_time]
+    [compute_time, communi_time]
 end
 
 function assemble_matrix_with_compressed_snd_and_with_auto_cache_time!(A, V, cache)
@@ -3373,5 +3373,5 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache_time!(A, V, cac
         map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
         A
     end
-    [compute_time+communi_time, compute_time, communi_time]
+    [compute_time, communi_time]
 end

@@ -56,7 +56,7 @@ function get_execution_time(path)
             right = np
             while left < right
                 for i in 1:nruns
-                    if v[left][i][1] < v[right][i][1]
+                    if sum(v[left][i]) < sum(v[right][i])
                         v[left] = v[right]
                     end
                 end
@@ -76,10 +76,10 @@ function get_execution_time(path)
     build_time = max_build_time[1]
     rebuild_time = max_rebuild_time[1]
     for i in 2:length(buildmat[1])
-        if max_build_time[i][1] < build_time[1]
+        if sum(max_build_time[i]) < sum(build_time)
             build_time = max_build_time[i]
         end
-        if max_rebuild_time[i][1] < rebuild_time[1]
+        if sum(max_rebuild_time[i]) < sum(rebuild_time)
             rebuild_time = max_rebuild_time[i]
         end
     end
@@ -97,7 +97,7 @@ function get_execution_time(path, buildmat, rebuildmat)
             right = np
             while left < right
                 for i in 1:nruns
-                    if v[left][i][1] < v[right][i][1]
+                    if sum(v[left][i]) < sum(v[right][i])
                         v[left] = v[right]
                     end
                 end
@@ -114,10 +114,10 @@ function get_execution_time(path, buildmat, rebuildmat)
     build_time = max_build_time[1]
     rebuild_time = max_rebuild_time[1]
     for i in 2:length(buildmat[1])
-        if max_build_time[i][1] < build_time[1]
+        if sum(max_build_time[i]) < sum(build_time)
             build_time = max_build_time[i]
         end
-        if max_rebuild_time[i][1] < rebuild_time[1]
+        if sum(max_rebuild_time[i]) < sum(rebuild_time)
             rebuild_time = max_rebuild_time[i]
         end
     end
