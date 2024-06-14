@@ -1,21 +1,21 @@
-function get_folder_name(params::@NamedTuple{nruns::Int64, cells_per_dir::NTuple{N, Int64}, parts_per_dir::NTuple{N, Int64}}) where {N}
+function get_folder_name(params::@NamedTuple{nruns::Int64, cells_per_dir::NTuple{N, Int64}, parts_per_dir::NTuple{N, Int64}}, root_name="") where {N}
     nruns, cells_per_dir, parts_per_dir = params
     cells_per_dir_str = sprint(show, cells_per_dir)
     cells_per_dir_str = replace(cells_per_dir_str, " " => "")
     parts_per_dir_str = sprint(show, parts_per_dir)
     parts_per_dir_str = replace(parts_per_dir_str, " " => "")
     nruns_str = sprint(show, nruns)
-    mkpath(join([cells_per_dir_str, parts_per_dir_str, nruns_str], "_"))
+    mkpath(joinpath(root_name, join([cells_per_dir_str, parts_per_dir_str, nruns_str], "_")))
 end
 
-function get_folder_name(job_params)
+function get_folder_name(job_params, root_name="")
     nruns, cells_per_dir, parts_per_dir, _ = job_params
     cells_per_dir_str = sprint(show, cells_per_dir)
     cells_per_dir_str = replace(cells_per_dir_str, " " => "")
     parts_per_dir_str = sprint(show, parts_per_dir)
     parts_per_dir_str = replace(parts_per_dir_str, " " => "")
     nruns_str = sprint(show, nruns)
-    mkpath(join([cells_per_dir_str, parts_per_dir_str, nruns_str], "_"))
+    mkpath(joinpath(root_name, join([cells_per_dir_str, parts_per_dir_str, nruns_str], "_")))
 end
 
 function get_path(job_params, folder_name=get_folder_name(job_params))

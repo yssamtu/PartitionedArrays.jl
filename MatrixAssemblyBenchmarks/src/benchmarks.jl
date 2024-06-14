@@ -266,7 +266,7 @@ function experiment(job_params; folder_name=get_folder_name(job_params), path=ge
     end
 end
 
-function experiments(params)
+function experiments(params, root_name="")
     parts_per_dir = params.parts_per_dir
     cells_per_dir = parts_per_dir
     nruns = 1
@@ -291,7 +291,7 @@ function experiments(params)
 
     execution_times = DataStructures.OrderedDict{String, @NamedTuple{build_time::Float64, rebuild_time::Float64}}()
     nruns, cells_per_dir, parts_per_dir = params
-    folder_name = get_folder_name(params)
+    folder_name = get_folder_name(params, root_name)
 
     job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[1])
     result = experiment(job_params, folder_name=folder_name)
@@ -353,4 +353,31 @@ function experiments(params)
         end
     end
     
+end
+
+function experiments_set(parts_per_dir, root_name)
+    cells_per_dir = (320, 320, 320)
+    nruns = 20
+    params = (; nruns, cells_per_dir, parts_per_dir)
+    experiments(params, root_name)
+
+    cells_per_dir = (160, 160, 160)
+    nruns = 40
+    params = (; nruns, cells_per_dir, parts_per_dir)
+    experiments(params, root_name)
+
+    cells_per_dir = (80, 80, 80)
+    nruns = 80
+    params = (; nruns, cells_per_dir, parts_per_dir)
+    experiments(params, root_name)
+
+    cells_per_dir = (40, 40, 40)
+    nruns = 160
+    params = (; nruns, cells_per_dir, parts_per_dir)
+    experiments(params, root_name)
+
+    cells_per_dir = (20, 20, 20)
+    nruns = 320
+    params = (; nruns, cells_per_dir, parts_per_dir)
+    experiments(params, root_name)
 end
