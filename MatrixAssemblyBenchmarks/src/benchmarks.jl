@@ -289,7 +289,7 @@ function experiment(job_params; folder_name=get_folder_name(job_params), path=ge
 end
 
 function experiments(params; root_name="", distribute=nothing)
-    function actual_function!(execution_times, params, root_name, distribute)
+    function actual_function!(params, root_name, distribute)
         parts_per_dir = params.parts_per_dir
         cells_per_dir = parts_per_dir
         nruns = 1
@@ -312,6 +312,7 @@ function experiments(params; root_name="", distribute=nothing)
         job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[9])
         benchmark_psparse(distribute, job_params)
 
+        execution_times = DataStructures.OrderedDict{String, @NamedTuple{build_time::Float64, rebuild_time::Float64}}()
         nruns, cells_per_dir, parts_per_dir = params
         folder_name = get_folder_name(params, root_name)
 
@@ -368,23 +369,22 @@ function experiments(params; root_name="", distribute=nothing)
         map_main(result) do result
             execution_times[job_params.method] = get_execution_time(result...)
         end
-        result, folder_name
+        
+        map_main(result) do result
+            open(get_path("summary", folder_name), "w") do f
+                JSON.print(f, execution_times, 2)
+            end
+        end
     end
 
-    execution_times = DataStructures.OrderedDict{String, @NamedTuple{build_time::Float64, rebuild_time::Float64}}()
     if distribute == nothing
         with_mpi() do distribute
-            result, folder_name = actual_function!(execution_times, params, root_name, distribute)
+            actual_function!(params, root_name, distribute)
         end
     else
-        result, folder_name = actual_function!(execution_times, params, root_name, distribute)
+        actual_function!(params, root_name, distribute)
     end
 
-    map_main(result) do result
-        open(get_path("summary", folder_name), "w") do f
-            JSON.print(f, execution_times, 2)
-        end
-    end
     
 end
 
