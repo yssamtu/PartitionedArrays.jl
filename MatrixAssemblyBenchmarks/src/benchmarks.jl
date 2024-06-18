@@ -85,6 +85,7 @@ function benchmark_psparse(distribute, job_params)
         I .= I .- 1
         J .= J .- 1
         for irun in 1:nruns
+            MPI.Barrier(MPI.COMM_WORLD)
             t_buildmat[irun] = @elapsed begin
                 A = Ref{PetscCall.Mat}()
                 PetscCall.@check_error_code PetscCall.MatCreate(petsc_comm, A)
@@ -110,6 +111,7 @@ function benchmark_psparse(distribute, job_params)
         PetscCall.@check_error_code PetscCall.MatAssemblyBegin(A[], PetscCall.MAT_FINAL_ASSEMBLY)
         PetscCall.@check_error_code PetscCall.MatAssemblyEnd(A[], PetscCall.MAT_FINAL_ASSEMBLY)
         for irun in 1:nruns
+            MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = @elapsed begin
                 for p in 1:length(I)
                     PetscCall.@check_error_code PetscCall.MatSetValues(A[], 1, view(I, p:p), 1, view(J, p:p), view(V, p:p), PetscCall.ADD_VALUES)
@@ -129,6 +131,7 @@ function benchmark_psparse(distribute, job_params)
         J .= J .- 1
         ncoo = length(I)
         for irun in 1:nruns
+            MPI.Barrier(MPI.COMM_WORLD)
             t_buildmat[irun] = @elapsed begin
                 A = Ref{PetscCall.Mat}()
                 PetscCall.@check_error_code PetscCall.MatCreate(petsc_comm, A)
@@ -150,6 +153,7 @@ function benchmark_psparse(distribute, job_params)
         PetscCall.@check_error_code PetscCall.MatAssemblyBegin(A[], PetscCall.MAT_FINAL_ASSEMBLY)
         PetscCall.@check_error_code PetscCall.MatAssemblyEnd(A[], PetscCall.MAT_FINAL_ASSEMBLY)
         for irun in 1:nruns
+            MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = @elapsed begin
                 PetscCall.@check_error_code PetscCall.MatSetValuesCOO(A[], V, PetscCall.ADD_VALUES)
                 PetscCall.@check_error_code PetscCall.MatAssemblyBegin(A[], PetscCall.MAT_FINAL_ASSEMBLY)
@@ -164,10 +168,12 @@ function benchmark_psparse(distribute, job_params)
     V = psparse_args[3]
     if method == "psparse"
         for irun in 1:nruns
+            MPI.Barrier(MPI.COMM_WORLD)
             t_buildmat[irun] = @elapsed psparse(psparse_args...; reuse=true) |> fetch
         end
         A, cacheA = psparse(psparse_args...; reuse=true) |> fetch
         for irun in 1:nruns
+            MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = @elapsed psparse!(A, V, cacheA) |> wait
         end
     elseif method == "petsc_setvalues"
@@ -181,67 +187,79 @@ function benchmark_psparse(distribute, job_params)
     elseif method == "assemble_matrix_no_compressed_snd_and_with_int_vector_cache"
         for irun in 1:nruns
             copy_psparse_args = deepcopy(psparse_args)
+            MPI.Barrier(MPI.COMM_WORLD)
             t_buildmat[irun] = @elapsed assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(sparse, copy_psparse_args...) |> fetch
         end
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
             copy_V = copy(psparse_args[3])
+            MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = @elapsed assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(A, copy_V, cacheA) |> wait
         end
     elseif method == "assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache"
         for irun in 1:nruns
             copy_psparse_args = deepcopy(psparse_args)
+            MPI.Barrier(MPI.COMM_WORLD)
             t_buildmat[irun] = @elapsed assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(sparse, copy_psparse_args...) |> fetch
         end
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
             copy_V = copy(psparse_args[3])
+            MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = @elapsed assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(A, copy_V, cacheA) |> wait
         end
     elseif method == "assemble_matrix_no_compressed_snd_and_with_auto_cache"
         for irun in 1:nruns
             copy_psparse_args = deepcopy(psparse_args)
+            MPI.Barrier(MPI.COMM_WORLD)
             t_buildmat[irun] = @elapsed assemble_matrix_no_compressed_snd_and_with_auto_cache!(sparse, copy_psparse_args...) |> fetch
         end
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_no_compressed_snd_and_with_auto_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
             copy_V = copy(psparse_args[3])
+            MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = @elapsed assemble_matrix_no_compressed_snd_and_with_auto_cache!(A, copy_V, cacheA) |> wait
         end
     elseif method == "assemble_matrix_with_compressed_snd_and_with_int_vector_cache"
         for irun in 1:nruns
             copy_psparse_args = deepcopy(psparse_args)
+            MPI.Barrier(MPI.COMM_WORLD)
             t_buildmat[irun] = @elapsed assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(sparse, copy_psparse_args...) |> fetch
         end
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
             copy_V = copy(psparse_args[3])
+            MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = @elapsed assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(A, copy_V, cacheA) |> wait
         end
     elseif method == "assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache"
         for irun in 1:nruns
             copy_psparse_args = deepcopy(psparse_args)
+            MPI.Barrier(MPI.COMM_WORLD)
             t_buildmat[irun] = @elapsed assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(sparse, copy_psparse_args...) |> fetch
         end
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
             copy_V = copy(psparse_args[3])
+            MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = @elapsed assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(A, copy_V, cacheA) |> wait
         end
     elseif method == "assemble_matrix_with_compressed_snd_and_with_auto_cache"
         for irun in 1:nruns
             copy_psparse_args = deepcopy(psparse_args)
+            MPI.Barrier(MPI.COMM_WORLD)
             t_buildmat[irun] = @elapsed assemble_matrix_with_compressed_snd_and_with_auto_cache!(sparse, copy_psparse_args...) |> fetch
         end
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_with_compressed_snd_and_with_auto_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
             copy_V = copy(psparse_args[3])
+            MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = @elapsed assemble_matrix_with_compressed_snd_and_with_auto_cache!(A, copy_V, cacheA) |> wait
         end
     end
