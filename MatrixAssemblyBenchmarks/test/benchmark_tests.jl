@@ -1,6 +1,10 @@
 import MatrixAssemblyBenchmarks as mb
-
-
+node = 12
+core = 16
+cells_per_dirs = (80, 80, 80)
+nrunss = 80
+dir_name = "test"
+mb.run_experiments(node, core, cells_per_dirs, nrunss; dir_name=dir_name)
 # #(1, 1)
 # parts_per_dir = (1, 1, 1)
 # mb.experiments_set(parts_per_dir, "(1,1)")
