@@ -134,8 +134,8 @@ function create_job_file(node, core; project=Base.active_project(), dir_name="",
                         render(io, template_experiement_body, body_params)
                     end
                 else
-                    body_params = Dict(string(:cells_per_dir) => cells_per_dirs, string(:nruns) => nrunss)
-                    render(io, template_experiements_body, body_params)
+                    body_params = Dict(string(:cells_per_dir) => cells_per_dirs, string(:nruns) => nrunss, string(:method) => "\"$methods\"")
+                    render(io, template_experiement_body, body_params)
                 end
             end
             write(io, template_body_tail)
@@ -162,10 +162,21 @@ end
 function run_experiments(node, core, cells_per_dirs, nrunss; dir_name="", project=Base.active_project(), nexec=1)
     cmd = :sbatch
     file_name = create_job_file(node, core; project=project, dir_name=dir_name, cells_per_dirs=cells_per_dirs, nrunss=nrunss)
-    cd(mkpath(abspath(dir_name)))
+    cd(abspath(dir_name))
+    data_path = joinpath(pwd(), "($node,$core)")
+    result_dir = mkpath(joinpath(pwd(), "result"))
     while nexec > 0
-        run(`$cmd $file_name`)
-        nexec -= 1
+        try
+            run(`$cmd --wait $file_name`)
+            result_path = joinpath(result_dir, basename(data_path))
+            if isdir(result_path)
+                merge_files(result_path, data_path)
+            else
+                mv(data_path, result_path)
+            end
+        finally
+            nexec -= 1
+        end
     end
 end
 
@@ -174,7 +185,17 @@ function run_experiment(node, core, cells_per_dirs, nrunss, methods; dir_name=""
     file_name = create_job_file(node, core; project=project, dir_name=dir_name, cells_per_dirs=cells_per_dirs, nrunss=nrunss, methods=methods)
     cd(mkpath(abspath(dir_name)))
     while nexec > 0
-        run(`$cmd $file_name`)
-        nexec -= 1
+        try
+            run(`$cmd --wait $file_name`)
+        finally
+            nexec -= 1
+        end
     end
+end
+
+function merge_file(result_file, new_file)
+end
+
+function merge_files(result_dir, new_dir)
+    
 end
