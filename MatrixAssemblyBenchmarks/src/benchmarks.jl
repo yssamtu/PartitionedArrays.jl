@@ -272,10 +272,16 @@ function benchmark_psparse(distribute, job_params)
     end
 end
 
-function experiment(job_params; folder_name=get_folder_name(job_params), path=get_path(job_params, folder_name), distribute=nothing)
+function experiment(job_params; root_name="", folder_name=get_folder_name(job_params, root_name), path=get_path(job_params, folder_name), distribute=nothing)
     if distribute == nothing
-        results_in_main = with_mpi(distribute -> benchmark_psparse(distribute, job_params))
+        results_in_main = with_mpi() do distribute
+            start_params = (nruns=1, cells_per_dir=job_params.parts_per_dir, parts_per_dir=job_params.parts_per_dir, method=job_params.method)
+            benchmark_psparse(distribute, start_params)
+            benchmark_psparse(distribute, job_params)
+        end
     else
+        start_params = (nruns=1, cells_per_dir=job_params.parts_per_dir, parts_per_dir=job_params.parts_per_dir, method=job_params.method)
+        benchmark_psparse(distribute, start_params)
         results_in_main = benchmark_psparse(distribute, job_params)
     end
     map_main(results_in_main) do results
@@ -289,29 +295,7 @@ function experiment(job_params; folder_name=get_folder_name(job_params), path=ge
 end
 
 function experiments(params; root_name="", distribute=nothing)
-    function actual_function!(params, root_name, distribute)
-        parts_per_dir = params.parts_per_dir
-        cells_per_dir = parts_per_dir
-        nruns = 1
-        job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[1])
-        benchmark_psparse(distribute, job_params)
-        job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[2])
-        benchmark_psparse(distribute, job_params)
-        job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[3])
-        benchmark_psparse(distribute, job_params)
-        job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[4])
-        benchmark_psparse(distribute, job_params)
-        job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[5])
-        benchmark_psparse(distribute, job_params)
-        job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[6])
-        benchmark_psparse(distribute, job_params)
-        job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[7])
-        benchmark_psparse(distribute, job_params)
-        job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[8])
-        benchmark_psparse(distribute, job_params)
-        job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[9])
-        benchmark_psparse(distribute, job_params)
-
+    function actual_function(params, root_name, distribute)
         execution_times = DataStructures.OrderedDict{String, @NamedTuple{build_time::Float64, rebuild_time::Float64}}()
         nruns, cells_per_dir, parts_per_dir = params
         folder_name = get_folder_name(params, root_name)
@@ -379,13 +363,11 @@ function experiments(params; root_name="", distribute=nothing)
 
     if distribute == nothing
         with_mpi() do distribute
-            actual_function!(params, root_name, distribute)
+            actual_function(params, root_name, distribute)
         end
     else
-        actual_function!(params, root_name, distribute)
+        actual_function(params, root_name, distribute)
     end
-
-    
 end
 
 function experiments_set(parts_per_dir; root_name="")
