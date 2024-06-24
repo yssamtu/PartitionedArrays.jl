@@ -110,7 +110,13 @@ function create_job_file(node, core; project=Base.active_project(), dir_name="",
     root_name = "\"($node,$core)\""
     body_head_params = Dict(string(:np) => np, string(:project) => project, string(:parts_per_dir) => parts_per_dir, string(:root_name) => root_name)
     dir_name = mkpath(abspath(dir_name))
-    file_name = joinpath(dir_name, "$(hash((header_params["node"], header_params["core"]))).sh")
+    if !isnothing(methods)
+        file_name = joinpath(dir_name, "$(hash([node, core, cells_per_dirs, nrunss, methods])).sh")
+    elseif !isnothing(cells_per_dirs)
+        file_name = joinpath(dir_name, "$(hash([node, core, cells_per_dirs, nrunss])).sh")
+    else
+        file_name = joinpath(dir_name, "$(hash([node, core])).sh")
+    end
     open(file_name, "w") do io
         render(io, template_header, header_params)
         if isnothing(cells_per_dirs)
@@ -269,10 +275,14 @@ function merge_file(result_case, new_case)
     summary_updated = false
     book_updated = false
     for (f, new_time_data) in new_summary
-        result_book_path = joinpath(result_case, "$f.json")
-        result_book = JSON.parsefile(result_book_path; dicttype=DataStructures.OrderedDict)
         new_book_path = joinpath(new_case, "$f.json")
         new_book = JSON.parsefile(new_book_path; dicttype=DataStructures.OrderedDict)
+        result_book_path = joinpath(result_case, "$f.json")
+        if isfile(result_book_path)
+            result_book = JSON.parsefile(result_book_path; dicttype=DataStructures.OrderedDict)
+        else
+            result_book = new_book
+        end
         for (time, new_data) in new_time_data
             if new_data < result_summary[f][time]
                 result_summary[f][time] = new_data
