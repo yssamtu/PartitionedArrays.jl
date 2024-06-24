@@ -64,6 +64,6 @@ template_body_tail = raw"""
 '
 """
 
-node_config = Dict(1 => (1, 1, 1), 2 => (1, 1, 2), 4 => (1, 2, 2), 8 => (2, 2, 2), 12 => (2, 2, 3), 18 => (2, 3, 3), 27 => (3, 3, 3))
-core_config = Dict(1 => (1, 1, 1), 2 => (1, 1, 2), 4 => (1, 2, 2), 8 => (2, 2, 2), 12 => (2, 2, 3), 16 => (2, 2, 4))
-node_core_partitions = Dict((node, core) => (node_partition .* core_partition) for (node, node_partition) in node_config for (core, core_partition) in core_config)
+node_config = DataStructures.OrderedDict(1 => (1, 1, 1), 2 => (1, 1, 2), 4 => (1, 2, 2), 8 => (2, 2, 2), 12 => (2, 2, 3), 18 => (2, 3, 3), 27 => (3, 3, 3))
+core_config = DataStructures.OrderedDict(1 => (1, 1, 1), 2 => (1, 1, 2), 4 => (1, 2, 2), 8 => (2, 2, 2), 12 => (2, 2, 3), 16 => (2, 2, 4))
+node_core_partitions = DataStructures.OrderedDict((node, core) => (node_partition .* core_partition) for (node, node_partition) in node_config for (core, core_partition) in core_config)

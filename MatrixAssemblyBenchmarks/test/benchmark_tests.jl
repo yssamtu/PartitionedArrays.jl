@@ -1,10 +1,13 @@
 import MatrixAssemblyBenchmarks as mb
-node = 12
-core = 16
-cells_per_dirs = (80, 80, 80)
-nrunss = 80
+node = 2
+core = 1
+cells_per_dirs = (20, 20, 20)
+nrunss = 1
 dir_name = "test"
-mb.run_experiments(node, core, cells_per_dirs, nrunss; dir_name=dir_name)
+# mb.run_experiments_sets(; dir_name=dir_name, nexec=1)
+# mb.run_experiments_set(node, core; dir_name=dir_name)
+# mb.run_experiments(node, core, cells_per_dirs, nrunss; dir_name=dir_name, nexec=2)
+# mb.run_experiment(node, core, cells_per_dirs, nrunss, "psparse"; dir_name=dir_name)
 # #(1, 1)
 # parts_per_dir = (1, 1, 1)
 # mb.experiments_set(parts_per_dir, "(1,1)")

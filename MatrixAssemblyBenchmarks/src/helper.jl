@@ -160,20 +160,33 @@ function run_experiments_set(node, core; dir_name="", project=Base.active_projec
     cd(abspath(dir_name))
     result_dir = mkpath(joinpath(pwd(), "result"))
     data_path = joinpath(pwd(), "($node,$core)")
+    Base.exit_on_sigint(false)
     while nexec > 0
+        jobid = nothing
         try
-            jobid = readchomp(`$cmd --wait --parsable $file_name`)
+            jobid = readchomp(`$cmd --parsable $file_name`)
+            while true
+                state = split(readchomp(`sacct --jobs=$jobid --noheader --format=state --parsable2`), "\n")[1]
+                if state == "COMPLETED" || state == "FAILED"
+                    break
+                end
+            end
             rm(joinpath(pwd(), "slurm-$jobid.out"))
             result_path = joinpath(result_dir, basename(data_path))
-            if isdir(result_path)
-                merge_dir(result_path, data_path)
-            else
-                mv(data_path, result_path)
-            end
-        finally
+            merge_dir(result_path, data_path)
             nexec -= 1
+        catch
+            rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
+            try
+                run(pipeline(`preserve -c $jobid`; stdout=devnull, stderr=devnull))
+            catch
+            end
+            result_path = joinpath(result_dir, basename(data_path))
+            merge_dir(result_path, data_path)
+            nexec = 0
         end
     end
+    Base.exit_on_sigint(true)
     cd(original_dir)
 end
 
@@ -184,20 +197,30 @@ function run_experiments(node, core, cells_per_dirs, nrunss; dir_name="", projec
     cd(abspath(dir_name))
     result_dir = mkpath(joinpath(pwd(), "result"))
     data_path = joinpath(pwd(), "($node,$core)")
+    Base.exit_on_sigint(false)
     while nexec > 0
+        jobid = nothing
         try
-            jobid = readchomp(`$cmd --wait --parsable $file_name`)
+            jobid = readchomp(`$cmd --parsable $file_name`)
+            while true
+                state = split(readchomp(`sacct --jobs=$jobid --noheader --format=state --parsable2`), "\n")[1]
+                if state == "COMPLETED" || state == "FAILED"
+                    break
+                end
+            end
             rm(joinpath(pwd(), "slurm-$jobid.out"))
             result_path = joinpath(result_dir, basename(data_path))
-            if isdir(result_path)
-                merge_dir(result_path, data_path)
-            else
-                mv(data_path, result_path)
-            end
-        finally
+            merge_dir(result_path, data_path)
             nexec -= 1
+        catch
+            rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
+            run(pipeline(`preserve -c $jobid`, devnull))
+            result_path = joinpath(result_dir, basename(data_path))
+            merge_dir(result_path, data_path)
+            nexec = 0
         end
     end
+    Base.exit_on_sigint(true)
     cd(original_dir)
 end
 
@@ -208,28 +231,41 @@ function run_experiment(node, core, cells_per_dirs, nrunss, methods; dir_name=""
     cd(abspath(dir_name))
     result_dir = mkpath(joinpath(pwd(), "result"))
     data_path = joinpath(pwd(), "($node,$core)")
+    Base.exit_on_sigint(false)
     while nexec > 0
+        jobid = nothing
         try
-            jobid = readchomp(`$cmd --wait --parsable $file_name`)
+            jobid = readchomp(`$cmd --parsable $file_name`)
+            while true
+                state = split(readchomp(`sacct --jobs=$jobid --noheader --format=state --parsable2`), "\n")[1]
+                if state == "COMPLETED" || state == "FAILED"
+                    break
+                end
+            end
             rm(joinpath(pwd(), "slurm-$jobid.out"))
             result_path = joinpath(result_dir, basename(data_path))
-            if isdir(result_path)
-                merge_dir(result_path, data_path)
-            else
-                mv(data_path, result_path)
-            end
-        finally
+            merge_dir(result_path, data_path)
             nexec -= 1
+        catch
+            rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
+            run(pipeline(`preserve -c $jobid`, devnull))
+            result_path = joinpath(result_dir, basename(data_path))
+            merge_dir(result_path, data_path)
+            nexec = 0
         end
     end
+    Base.exit_on_sigint(true)
     cd(original_dir)
 end
 
 function merge_file(result_case, new_case)
+    new_summary_path = joinpath(new_case, "summary.json")
+    if !isfile(new_summary_path)
+        return
+    end
+    new_summary = JSON.parsefile(new_summary_path; dicttype=DataStructures.OrderedDict)
     result_summary_path = joinpath(result_case, "summary.json")
     result_summary = JSON.parsefile(result_summary_path; dicttype=DataStructures.OrderedDict)
-    new_summary_path = joinpath(new_case, "summary.json")
-    new_summary = JSON.parsefile(new_summary_path; dicttype=DataStructures.OrderedDict)
     summary_updated = false
     book_updated = false
     for (f, new_time_data) in new_summary
@@ -263,15 +299,23 @@ function merge_file(result_case, new_case)
 end
 
 function merge_dir(result_dir, new_dir)
-    result_cases = readdir(result_dir, join=true)
+    if !isdir(new_dir)
+        return
+    end
     new_cases = readdir(new_dir, join=true)
     for new_case in new_cases
         result_case = joinpath(result_dir, basename(new_case))
         if isdir(result_case)
             merge_file(result_case, new_case)
-            rm(new_case)
+            rm(new_case; recursive=true)
         else
-            mv(new_case, result_case)
+            new_summary_path = joinpath(new_case, "summary.json")
+            if isfile(new_summary_path)
+                mkpath(result_dir)
+                mv(new_case, result_case)
+            else
+                rm(new_case; recursive=true)
+            end
         end
     end
     rm(new_dir)
