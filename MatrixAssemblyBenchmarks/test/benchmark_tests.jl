@@ -124,7 +124,7 @@ push!(methods, "petsc_coo")
 @sync for (node, core, cells_per_dir, nruns, method) in zip(nodes, cores, cells_per_dirss, nrunss, methods)
     @async mb.run_experiment(node, core, cells_per_dir, nruns, method; dir_name=dir_name, nexec=nexec)
 end
-
+# mb.merge_dir("/home/ppp23002/thesis/strong_scaling/(18,12)", "/home/ppp23002/thesis/test/result/(18,12)")
 # mb.run_experiments_sets(; dir_name=dir_name, nexec=1)
 # mb.run_experiments_set(node, core; dir_name=dir_name)
 # mb.run_experiments(node, core, cells_per_dirs, nrunss; dir_name=dir_name, nexec=2)

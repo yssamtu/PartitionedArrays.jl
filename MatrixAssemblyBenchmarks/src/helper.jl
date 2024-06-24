@@ -173,11 +173,13 @@ function run_experiments_set(node, core; dir_name="", project=Base.active_projec
             jobid = readchomp(`$cmd --parsable $file_name`)
             while true
                 state = split(readchomp(`sacct --jobs=$jobid --noheader --format=state --parsable2`), "\n")[1]
-                if state == "COMPLETED" || state == "FAILED"
+                if state == "COMPLETED"
+                    rm(joinpath(pwd(), "slurm-$jobid.out"))
+                    break
+                elseif state == "FAILED"
                     break
                 end
             end
-            rm(joinpath(pwd(), "slurm-$jobid.out"))
             result_path = joinpath(result_dir, basename(data_path))
             merge_dir(result_path, data_path)
             nexec -= 1
@@ -210,11 +212,13 @@ function run_experiments(node, core, cells_per_dirs, nrunss; dir_name="", projec
             jobid = readchomp(`$cmd --parsable $file_name`)
             while true
                 state = split(readchomp(`sacct --jobs=$jobid --noheader --format=state --parsable2`), "\n")[1]
-                if state == "COMPLETED" || state == "FAILED"
+                if state == "COMPLETED"
+                    rm(joinpath(pwd(), "slurm-$jobid.out"))
+                    break
+                elseif state == "FAILED"
                     break
                 end
             end
-            rm(joinpath(pwd(), "slurm-$jobid.out"))
             result_path = joinpath(result_dir, basename(data_path))
             merge_dir(result_path, data_path)
             nexec -= 1
@@ -244,11 +248,13 @@ function run_experiment(node, core, cells_per_dirs, nrunss, methods; dir_name=""
             jobid = readchomp(`$cmd --parsable $file_name`)
             while true
                 state = split(readchomp(`sacct --jobs=$jobid --noheader --format=state --parsable2`), "\n")[1]
-                if state == "COMPLETED" || state == "FAILED"
+                if state == "COMPLETED"
+                    rm(joinpath(pwd(), "slurm-$jobid.out"))
+                    break
+                elseif state == "FAILED"
                     break
                 end
             end
-            rm(joinpath(pwd(), "slurm-$jobid.out"))
             result_path = joinpath(result_dir, basename(data_path))
             merge_dir(result_path, data_path)
             nexec -= 1
@@ -284,7 +290,15 @@ function merge_file(result_case, new_case)
             result_book = new_book
         end
         for (time, new_data) in new_time_data
-            if new_data < result_summary[f][time]
+            if !haskey(result_summary, f)
+                result_summary[f] = DataStructures.OrderedDict(time => new_data)
+                summary_updated = true
+                book_updated = true
+            elseif !haskey(result_summary[f], time)
+                result_summary[f][time] = new_data
+                summary_updated = true
+                book_updated = true
+            elseif new_data < result_summary[f][time]
                 result_summary[f][time] = new_data
                 k = "$(time[1:end-5])mat"
                 result_book[k] = new_book[k]
