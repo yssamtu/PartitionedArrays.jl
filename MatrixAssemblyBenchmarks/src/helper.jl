@@ -144,33 +144,29 @@ function create_job_file(node, core; project=Base.active_project(), dir_name="",
     return file_name
 end
 
-function run_experiments_set(; dir_name="", project=Base.active_project(), nexec=1)
-    cmd = :sbatch
-    files = Dict(create_job_file(node, core; project=project, dir_name=dir_name) => nexec for (node, core) in keys(node_core_partitions))
-    cd(mkpath(abspath(dir_name)))
-    while isempty(files)
-        for file_name in keys(files)
-            run(`$cmd $file_name`)
-            files[file_name] -= 1
-            if files[file_name] == 0
-                delete!(files, file_name)
-            end
-        end
+function run_experiments_sets(; dir_name="", project=Base.active_project(), nexec=1)
+    original_dir = pwd()
+    dir_name = abspath(dir_name)
+    @sync for (node, core) in keys(node_core_partitions)
+        @async run_experiments_set(node, core; dir_name=dir_name, project=project, nexec=nexec)
     end
+    cd(original_dir)
 end
 
-function run_experiments(node, core, cells_per_dirs, nrunss; dir_name="", project=Base.active_project(), nexec=1)
+function run_experiments_set(node, core; dir_name="", project=Base.active_project(), nexec=1)
     cmd = :sbatch
-    file_name = create_job_file(node, core; project=project, dir_name=dir_name, cells_per_dirs=cells_per_dirs, nrunss=nrunss)
+    file_name = create_job_file(node, core; project=project, dir_name=dir_name)
+    original_dir = pwd()
     cd(abspath(dir_name))
-    data_path = joinpath(pwd(), "($node,$core)")
     result_dir = mkpath(joinpath(pwd(), "result"))
+    data_path = joinpath(pwd(), "($node,$core)")
     while nexec > 0
         try
-            run(`$cmd --wait $file_name`)
+            jobid = readchomp(`$cmd --wait --parsable $file_name`)
+            rm(joinpath(pwd(), "slurm-$jobid.out"))
             result_path = joinpath(result_dir, basename(data_path))
             if isdir(result_path)
-                merge_files(result_path, data_path)
+                merge_dir(result_path, data_path)
             else
                 mv(data_path, result_path)
             end
@@ -178,24 +174,105 @@ function run_experiments(node, core, cells_per_dirs, nrunss; dir_name="", projec
             nexec -= 1
         end
     end
+    cd(original_dir)
+end
+
+function run_experiments(node, core, cells_per_dirs, nrunss; dir_name="", project=Base.active_project(), nexec=1)
+    cmd = :sbatch
+    file_name = create_job_file(node, core; project=project, dir_name=dir_name, cells_per_dirs=cells_per_dirs, nrunss=nrunss)
+    original_dir = pwd()
+    cd(abspath(dir_name))
+    result_dir = mkpath(joinpath(pwd(), "result"))
+    data_path = joinpath(pwd(), "($node,$core)")
+    while nexec > 0
+        try
+            jobid = readchomp(`$cmd --wait --parsable $file_name`)
+            rm(joinpath(pwd(), "slurm-$jobid.out"))
+            result_path = joinpath(result_dir, basename(data_path))
+            if isdir(result_path)
+                merge_dir(result_path, data_path)
+            else
+                mv(data_path, result_path)
+            end
+        finally
+            nexec -= 1
+        end
+    end
+    cd(original_dir)
 end
 
 function run_experiment(node, core, cells_per_dirs, nrunss, methods; dir_name="", project=Base.active_project(), nexec=1)
     cmd = :sbatch
     file_name = create_job_file(node, core; project=project, dir_name=dir_name, cells_per_dirs=cells_per_dirs, nrunss=nrunss, methods=methods)
-    cd(mkpath(abspath(dir_name)))
+    original_dir = pwd()
+    cd(abspath(dir_name))
+    result_dir = mkpath(joinpath(pwd(), "result"))
+    data_path = joinpath(pwd(), "($node,$core)")
     while nexec > 0
         try
-            run(`$cmd --wait $file_name`)
+            jobid = readchomp(`$cmd --wait --parsable $file_name`)
+            rm(joinpath(pwd(), "slurm-$jobid.out"))
+            result_path = joinpath(result_dir, basename(data_path))
+            if isdir(result_path)
+                merge_dir(result_path, data_path)
+            else
+                mv(data_path, result_path)
+            end
         finally
             nexec -= 1
         end
     end
+    cd(original_dir)
 end
 
-function merge_file(result_file, new_file)
+function merge_file(result_case, new_case)
+    result_summary_path = joinpath(result_case, "summary.json")
+    result_summary = JSON.parsefile(result_summary_path; dicttype=DataStructures.OrderedDict)
+    new_summary_path = joinpath(new_case, "summary.json")
+    new_summary = JSON.parsefile(new_summary_path; dicttype=DataStructures.OrderedDict)
+    summary_updated = false
+    book_updated = false
+    for (f, new_time_data) in new_summary
+        result_book_path = joinpath(result_case, "$f.json")
+        result_book = JSON.parsefile(result_book_path; dicttype=DataStructures.OrderedDict)
+        new_book_path = joinpath(new_case, "$f.json")
+        new_book = JSON.parsefile(new_book_path; dicttype=DataStructures.OrderedDict)
+        for (time, new_data) in new_time_data
+            if new_data < result_summary[f][time]
+                result_summary[f][time] = new_data
+                k = "$(time[1:end-5])mat"
+                result_book[k] = new_book[k]
+                summary_updated = true
+                book_updated = true
+            end
+        end
+        if book_updated
+            open(result_book_path, "w") do f
+                JSON.print(f, result_book, 2)
+            end
+            book_updated = false
+        end
+        rm(new_book_path)
+    end
+    if summary_updated
+        open(result_summary_path, "w") do f
+            JSON.print(f, result_summary, 2)
+        end
+    end
+    rm(new_summary_path)
 end
 
-function merge_files(result_dir, new_dir)
-    
+function merge_dir(result_dir, new_dir)
+    result_cases = readdir(result_dir, join=true)
+    new_cases = readdir(new_dir, join=true)
+    for new_case in new_cases
+        result_case = joinpath(result_dir, basename(new_case))
+        if isdir(result_case)
+            merge_file(result_case, new_case)
+            rm(new_case)
+        else
+            mv(new_case, result_case)
+        end
+    end
+    rm(new_dir)
 end
