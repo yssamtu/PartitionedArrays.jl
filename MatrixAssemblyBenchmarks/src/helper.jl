@@ -5,7 +5,7 @@ function get_folder_name(params::@NamedTuple{nruns::Int64, cells_per_dir::NTuple
     parts_per_dir_str = sprint(show, parts_per_dir)
     parts_per_dir_str = replace(parts_per_dir_str, " " => "")
     nruns_str = sprint(show, nruns)
-    mkpath(joinpath(root_name, join([cells_per_dir_str, parts_per_dir_str, nruns_str], "_")))
+    mkpath(abspath(joinpath(root_name, join([cells_per_dir_str, parts_per_dir_str, nruns_str], "_"))))
 end
 
 function get_folder_name(job_params, root_name="")
@@ -15,7 +15,7 @@ function get_folder_name(job_params, root_name="")
     parts_per_dir_str = sprint(show, parts_per_dir)
     parts_per_dir_str = replace(parts_per_dir_str, " " => "")
     nruns_str = sprint(show, nruns)
-    mkpath(joinpath(root_name, join([cells_per_dir_str, parts_per_dir_str, nruns_str], "_")))
+    mkpath(abspath(joinpath(root_name, join([cells_per_dir_str, parts_per_dir_str, nruns_str], "_"))))
 end
 
 function get_path(job_params, folder_name=get_folder_name(job_params))

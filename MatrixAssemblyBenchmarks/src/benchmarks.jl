@@ -272,7 +272,7 @@ function benchmark_psparse(distribute, job_params)
     end
 end
 
-function experiment(job_params; root_name="", folder_name=get_folder_name(job_params, root_name), path=get_path(job_params, folder_name), distribute=nothing, summary=true)
+function experiment(job_params; root_name="", folder_name=nothing, path=nothing, distribute=nothing, summary=true)
     if distribute == nothing
         results_in_main = with_mpi() do distribute
             start_params = (nruns=1, cells_per_dir=job_params.parts_per_dir, parts_per_dir=job_params.parts_per_dir, method=job_params.method)
@@ -284,7 +284,17 @@ function experiment(job_params; root_name="", folder_name=get_folder_name(job_pa
         benchmark_psparse(distribute, start_params)
         results_in_main = benchmark_psparse(distribute, job_params)
     end
-    results = map_main(results_in_main) do results
+    if isnothing(folder_name)
+        folder_name = map_main(results_in_main) do results
+            get_folder_name(job_params, root_name)
+        end
+    end
+    if isnothing(path)
+        path = map_main(folder_name) do folder_name
+            get_path(job_params, folder_name)
+        end
+    end
+    results = map_main(results_in_main, path) do results, path
         open(path, "w") do f
             JSON.print(f, results, 2)
         end
@@ -293,7 +303,7 @@ function experiment(job_params; root_name="", folder_name=get_folder_name(job_pa
         (; path, buildmat, rebuildmat)
     end
     if summary
-        map_main(results) do results
+        map_main(results, folder_name) do results, folder_name
             open(get_path("summary", folder_name), "w") do f
                 JSON.print(f, job_params.method => get_execution_time(results...), 2)
             end
@@ -306,12 +316,12 @@ function experiments(params; root_name="", distribute=nothing)
     function actual_function(params, root_name, distribute)
         execution_times = DataStructures.OrderedDict{String, @NamedTuple{build_time::Float64, rebuild_time::Float64}}()
         nruns, cells_per_dir, parts_per_dir = params
-        folder_name = get_folder_name(params, root_name)
 
         job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[1])
-        result = experiment(job_params; folder_name=folder_name, distribute=distribute, summary=false)
-        map_main(result) do result
+        result = experiment(job_params; root_name=root_name, distribute=distribute, summary=false)
+        folder_name = map_main(result) do result
             execution_times[job_params.method] = get_execution_time(result...)
+            get_folder_name(params, root_name)
         end
 
         job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[2])
@@ -362,7 +372,7 @@ function experiments(params; root_name="", distribute=nothing)
             execution_times[job_params.method] = get_execution_time(result...)
         end
         
-        map_main(result) do result
+        map_main(result, folder_name) do result, folder_name
             open(get_path("summary", folder_name), "w") do f
                 JSON.print(f, execution_times, 2)
             end

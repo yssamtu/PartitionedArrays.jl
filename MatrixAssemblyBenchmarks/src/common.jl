@@ -12,7 +12,7 @@ methods = [
 
 template_header = raw"""
 #!/bin/bash
-#SBATCH --time=06:00:00
+#SBATCH --time=00:15:00
 #SBATCH -N {{node}}
 #SBATCH --ntasks-per-node={{core}}
 

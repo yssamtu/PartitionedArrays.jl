@@ -1,6 +1,6 @@
 import MatrixAssemblyBenchmarks as mb
 dir_name = abspath("test")
-nexec = 10
+nexec = 100
 nodes = Int[]
 cores = Int[]
 cells_per_dirss = NTuple{3, Int}[]
@@ -15,18 +15,6 @@ push!(methods, "petsc_coo")
 
 append!(nodes, 27)
 append!(cores, 8)
-push!(cells_per_dirss, (80, 80, 80))
-append!(nrunss, 80)
-push!(methods, "petsc_coo")
-
-append!(nodes, 18)
-append!(cores, 16)
-push!(cells_per_dirss, (160, 160, 160))
-append!(nrunss, 40)
-push!(methods, "assemble_matrix_with_compressed_snd_and_with_int_vector_cache")
-
-append!(nodes, 18)
-append!(cores, 16)
 push!(cells_per_dirss, (80, 80, 80))
 append!(nrunss, 80)
 push!(methods, "petsc_coo")
@@ -125,9 +113,13 @@ push!(methods, "petsc_coo")
     @async mb.run_experiment(node, core, cells_per_dir, nruns, method; dir_name=dir_name, nexec=nexec)
 end
 # mb.merge_dir("/home/ppp23002/thesis/strong_scaling/(18,12)", "/home/ppp23002/thesis/test/result/(18,12)")
+# node=2
+# core=1
+# cells_per_dirs=(2, 1, 1)
+# nrunss=1
 # mb.run_experiments_sets(; dir_name=dir_name, nexec=1)
 # mb.run_experiments_set(node, core; dir_name=dir_name)
-# mb.run_experiments(node, core, cells_per_dirs, nrunss; dir_name=dir_name, nexec=2)
+# mb.run_experiments(node, core, cells_per_dirs, nrunss; dir_name=dir_name, nexec=1)
 # mb.run_experiment(node, core, cells_per_dirs, nrunss, "psparse"; dir_name=dir_name)
 # #(1, 1)
 # parts_per_dir = (1, 1, 1)
