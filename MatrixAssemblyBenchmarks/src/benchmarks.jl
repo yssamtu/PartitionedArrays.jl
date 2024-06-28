@@ -304,8 +304,15 @@ function experiment(job_params; root_name="", folder_name=nothing, path=nothing,
     end
     if summary
         map_main(results, folder_name) do results, folder_name
-            open(get_path("summary", folder_name), "w") do f
-                JSON.print(f, job_params.method => get_execution_time(results...), 2)
+            summary_path = get_path("summary", folder_name)
+            if isfile(summary_path)
+                summary = JSON.parsefile(summary_path; dicttype=DataStructures.OrderedDict)
+                summary[job_params.method] = get_execution_time(results...)
+            else
+                summary = job_params.method => get_execution_time(results...)
+            end
+            open(summary_path, "w") do f
+                JSON.print(f, summary, 2)
             end
         end
     end
