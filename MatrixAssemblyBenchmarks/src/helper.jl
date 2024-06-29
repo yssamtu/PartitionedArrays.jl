@@ -153,8 +153,23 @@ end
 function run_experiments_sets(; dir_name="", project=Base.active_project(), nexec=1)
     original_dir = pwd()
     dir_name = abspath(dir_name)
+    tasks = []
+    Base.exit_on_sigint(false)
     @sync for (node, core) in keys(node_core_partitions)
-        @async run_experiments_set(node, core; dir_name=dir_name, project=project, nexec=nexec)
+        try
+            while length(tasks) >= 20
+                for i in length(tasks):-1:1
+                    if istaskdone(tasks[i])
+                        deleteat!(tasks, i)
+                    end
+                end
+                yield()
+            end
+            task = @async run_experiments_set(node, core; dir_name=dir_name, project=project, nexec=nexec)
+            push!(tasks, task)
+        catch
+            break
+        end
     end
     cd(original_dir)
 end
@@ -174,7 +189,7 @@ function run_experiments_set(node, core; dir_name="", project=Base.active_projec
             while true
                 state = split(readchomp(`sacct --jobs=$jobid --noheader --format=state --parsable2`), "\n")[1]
                 if state == "COMPLETED"
-                    rm(joinpath(pwd(), "slurm-$jobid.out"))
+                    rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
                     break
                 elseif state == "FAILED"
                     break
@@ -194,7 +209,6 @@ function run_experiments_set(node, core; dir_name="", project=Base.active_projec
             nexec = 0
         end
     end
-    Base.exit_on_sigint(true)
     cd(original_dir)
 end
 
@@ -213,7 +227,7 @@ function run_experiments(node, core, cells_per_dirs, nrunss; dir_name="", projec
             while true
                 state = split(readchomp(`sacct --jobs=$jobid --noheader --format=state --parsable2`), "\n")[1]
                 if state == "COMPLETED"
-                    rm(joinpath(pwd(), "slurm-$jobid.out"))
+                    rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
                     break
                 elseif state == "FAILED"
                     break
@@ -224,13 +238,15 @@ function run_experiments(node, core, cells_per_dirs, nrunss; dir_name="", projec
             nexec -= 1
         catch
             rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
-            run(pipeline(`preserve -c $jobid`, devnull))
+            try
+                run(pipeline(`preserve -c $jobid`; stdout=devnull, stderr=devnull))
+            catch
+            end
             result_path = joinpath(result_dir, basename(data_path))
             merge_dir(result_path, data_path)
             nexec = 0
         end
     end
-    Base.exit_on_sigint(true)
     cd(original_dir)
 end
 
@@ -249,7 +265,7 @@ function run_experiment(node, core, cells_per_dirs, nrunss, methods; dir_name=""
             while true
                 state = split(readchomp(`sacct --jobs=$jobid --noheader --format=state --parsable2`), "\n")[1]
                 if state == "COMPLETED"
-                    rm(joinpath(pwd(), "slurm-$jobid.out"))
+                    rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
                     break
                 elseif state == "FAILED"
                     break
@@ -260,13 +276,15 @@ function run_experiment(node, core, cells_per_dirs, nrunss, methods; dir_name=""
             nexec -= 1
         catch
             rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
-            run(pipeline(`preserve -c $jobid`, devnull))
+            try
+                run(pipeline(`preserve -c $jobid`; stdout=devnull, stderr=devnull))
+            catch
+            end
             result_path = joinpath(result_dir, basename(data_path))
             merge_dir(result_path, data_path)
             nexec = 0
         end
     end
-    Base.exit_on_sigint(true)
     cd(original_dir)
 end
 
