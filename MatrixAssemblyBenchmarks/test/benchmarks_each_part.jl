@@ -74,174 +74,88 @@ function benchmark_psparse(distribute, job_params)
     nruns, cells_per_dir, parts_per_dir, method = job_params
     np = prod(parts_per_dir)
     parts = distribute(LinearIndices((np,)))
-    t_buildmat = Vector{Vector{Float64}}(undef, nruns)#zeros(nruns)
-    t_rebuildmat = Vector{Vector{Float64}}(undef, nruns)#zeros(nruns)
-    petsc_comm = PetscCall.setup_petsc_comm(parts)
-    function petsc_setvalues(I, J, V, rows, cols)
-        m = own_length(rows)
-        n = own_length(cols)
-        M = global_length(rows)
-        N = global_length(cols)
-        I .= I .- 1
-        J .= J .- 1
-        for irun in 1:nruns
-            t_buildmat[irun] = @elapsed begin
-                A = Ref{PetscCall.Mat}()
-                PetscCall.@check_error_code PetscCall.MatCreate(petsc_comm, A)
-                PetscCall.@check_error_code PetscCall.MatSetType(A[], PetscCall.MATMPIAIJ)
-                PetscCall.@check_error_code PetscCall.MatSetSizes(A[], m, n, M, N)
-                PetscCall.@check_error_code PetscCall.MatMPIAIJSetPreallocation(A[], 32, C_NULL, 32, C_NULL)
-                for p in 1:length(I)
-                    PetscCall.@check_error_code PetscCall.MatSetValues(A[], 1, view(I, p:p), 1, view(J, p:p), view(V, p:p), PetscCall.ADD_VALUES)
-                end
-                PetscCall.@check_error_code PetscCall.MatAssemblyBegin(A[], PetscCall.MAT_FINAL_ASSEMBLY)
-                PetscCall.@check_error_code PetscCall.MatAssemblyEnd(A[], PetscCall.MAT_FINAL_ASSEMBLY)
-            end
-            PetscCall.@check_error_code PetscCall.MatDestroy(A)
-        end
-        A = Ref{PetscCall.Mat}()
-        PetscCall.@check_error_code PetscCall.MatCreate(petsc_comm, A)
-        PetscCall.@check_error_code PetscCall.MatSetType(A[], PetscCall.MATMPIAIJ)
-        PetscCall.@check_error_code PetscCall.MatSetSizes(A[], m, n, M, N)
-        PetscCall.@check_error_code PetscCall.MatMPIAIJSetPreallocation(A[], 32, C_NULL, 32, C_NULL)
-        for p in 1:length(I)
-            PetscCall.@check_error_code PetscCall.MatSetValues(A[], 1, view(I, p:p), 1, view(J, p:p), view(V, p:p), PetscCall.ADD_VALUES)
-        end
-        PetscCall.@check_error_code PetscCall.MatAssemblyBegin(A[], PetscCall.MAT_FINAL_ASSEMBLY)
-        PetscCall.@check_error_code PetscCall.MatAssemblyEnd(A[], PetscCall.MAT_FINAL_ASSEMBLY)
-        for irun in 1:nruns
-            t_rebuildmat[irun] = @elapsed begin
-                for p in 1:length(I)
-                    PetscCall.@check_error_code PetscCall.MatSetValues(A[], 1, view(I, p:p), 1, view(J, p:p), view(V, p:p), PetscCall.ADD_VALUES)
-                end
-                PetscCall.@check_error_code PetscCall.MatAssemblyBegin(A[], PetscCall.MAT_FINAL_ASSEMBLY)
-                PetscCall.@check_error_code PetscCall.MatAssemblyEnd(A[], PetscCall.MAT_FINAL_ASSEMBLY)
-            end
-        end
-        PetscCall.@check_error_code PetscCall.MatDestroy(A)
-    end
-    function petsc_coo(I, J, V, rows, cols)
-        m = own_length(rows)
-        n = own_length(cols)
-        M = global_length(rows)
-        N = global_length(cols)
-        I .= I .- 1
-        J .= J .- 1
-        ncoo = length(I)
-        for irun in 1:nruns
-            t_buildmat[irun] = @elapsed begin
-                A = Ref{PetscCall.Mat}()
-                PetscCall.@check_error_code PetscCall.MatCreate(petsc_comm, A)
-                PetscCall.@check_error_code PetscCall.MatSetType(A[], PetscCall.MATMPIAIJ)
-                PetscCall.@check_error_code PetscCall.MatSetSizes(A[], m, n, M, N)
-                PetscCall.@check_error_code PetscCall.MatSetPreallocationCOO(A[], ncoo, I, J)
-                PetscCall.@check_error_code PetscCall.MatSetValuesCOO(A[], V, PetscCall.ADD_VALUES)
-                PetscCall.@check_error_code PetscCall.MatAssemblyBegin(A[], PetscCall.MAT_FINAL_ASSEMBLY)
-                PetscCall.@check_error_code PetscCall.MatAssemblyEnd(A[], PetscCall.MAT_FINAL_ASSEMBLY)
-            end
-            PetscCall.@check_error_code PetscCall.MatDestroy(A)
-        end
-        A = Ref{PetscCall.Mat}()
-        PetscCall.@check_error_code PetscCall.MatCreate(petsc_comm, A)
-        PetscCall.@check_error_code PetscCall.MatSetType(A[], PetscCall.MATMPIAIJ)
-        PetscCall.@check_error_code PetscCall.MatSetSizes(A[], m, n, M, N)
-        PetscCall.@check_error_code PetscCall.MatSetPreallocationCOO(A[], ncoo, I, J)
-        PetscCall.@check_error_code PetscCall.MatSetValuesCOO(A[], V, PetscCall.ADD_VALUES)
-        PetscCall.@check_error_code PetscCall.MatAssemblyBegin(A[], PetscCall.MAT_FINAL_ASSEMBLY)
-        PetscCall.@check_error_code PetscCall.MatAssemblyEnd(A[], PetscCall.MAT_FINAL_ASSEMBLY)
-        for irun in 1:nruns
-            t_rebuildmat[irun] = @elapsed begin
-                PetscCall.@check_error_code PetscCall.MatSetValuesCOO(A[], V, PetscCall.ADD_VALUES)
-                PetscCall.@check_error_code PetscCall.MatAssemblyBegin(A[], PetscCall.MAT_FINAL_ASSEMBLY)
-                PetscCall.@check_error_code PetscCall.MatAssemblyEnd(A[], PetscCall.MAT_FINAL_ASSEMBLY)
-            end
-        end
-        PetscCall.@check_error_code PetscCall.MatDestroy(A)
-    end
+    t_buildmat = Vector{Vector{Float64}}(undef, nruns)
+    t_rebuildmat = Vector{Vector{Float64}}(undef, nruns)
     Ti = PetscCall.PetscInt
     T = PetscCall.PetscScalar
     psparse_args = coo_scalar_fem(cells_per_dir, parts_per_dir, parts, T, Ti)
     V = psparse_args[3]
-    if method == "psparse"
-        for irun in 1:nruns
-            t_buildmat[irun] = @elapsed psparse(psparse_args...; reuse=true) |> fetch
-        end
-        A, cacheA = psparse(psparse_args...; reuse=true) |> fetch
-        for irun in 1:nruns
-            t_rebuildmat[irun] = @elapsed psparse!(A, V, cacheA) |> wait
-        end
-    elseif method == "petsc_setvalues"
-        PetscCall.init(finalize_atexit=false)
-        map(petsc_setvalues, psparse_args...)
-        PetscCall.finalize()
-    elseif method == "petsc_coo"
-        PetscCall.init(finalize_atexit=false)
-        map(petsc_coo, psparse_args...)
-        PetscCall.finalize()
-    elseif method == "assemble_matrix_no_compressed_snd_and_with_int_vector_cache"
+    if method == "assemble_matrix_no_compressed_snd_and_with_int_vector_cache"
         for irun in 1:nruns
             copy_psparse_args = deepcopy(psparse_args)
+            MPI.Barrier(MPI.COMM_WORLD)
             t_buildmat[irun] = assemble_matrix_no_compressed_snd_and_with_int_vector_cache_time!(sparse, copy_psparse_args...)
         end
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
             copy_V = copy(psparse_args[3])
+            MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = assemble_matrix_no_compressed_snd_and_with_int_vector_cache_time!(A, copy_V, cacheA)
         end
     elseif method == "assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache"
         for irun in 1:nruns
             copy_psparse_args = deepcopy(psparse_args)
+            MPI.Barrier(MPI.COMM_WORLD)
             t_buildmat[irun] = assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache_time!(sparse, copy_psparse_args...)
         end
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
             copy_V = copy(psparse_args[3])
+            MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache_time!(A, copy_V, cacheA)
         end
     elseif method == "assemble_matrix_no_compressed_snd_and_with_auto_cache"
         for irun in 1:nruns
             copy_psparse_args = deepcopy(psparse_args)
+            MPI.Barrier(MPI.COMM_WORLD)
             t_buildmat[irun] = assemble_matrix_no_compressed_snd_and_with_auto_cache_time!(sparse, copy_psparse_args...)
         end
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_no_compressed_snd_and_with_auto_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
             copy_V = copy(psparse_args[3])
+            MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = assemble_matrix_no_compressed_snd_and_with_auto_cache_time!(A, copy_V, cacheA)
         end
     elseif method == "assemble_matrix_with_compressed_snd_and_with_int_vector_cache"
         for irun in 1:nruns
             copy_psparse_args = deepcopy(psparse_args)
+            MPI.Barrier(MPI.COMM_WORLD)
             t_buildmat[irun] = assemble_matrix_with_compressed_snd_and_with_int_vector_cache_time!(sparse, copy_psparse_args...)
         end
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
             copy_V = copy(psparse_args[3])
+            MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = assemble_matrix_with_compressed_snd_and_with_int_vector_cache_time!(A, copy_V, cacheA)
         end
     elseif method == "assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache"
         for irun in 1:nruns
             copy_psparse_args = deepcopy(psparse_args)
+            MPI.Barrier(MPI.COMM_WORLD)
             t_buildmat[irun] = assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache_time!(sparse, copy_psparse_args...)
         end
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
             copy_V = copy(psparse_args[3])
+            MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache_time!(A, copy_V, cacheA)
         end
     elseif method == "assemble_matrix_with_compressed_snd_and_with_auto_cache"
         for irun in 1:nruns
             copy_psparse_args = deepcopy(psparse_args)
+            MPI.Barrier(MPI.COMM_WORLD)
             t_buildmat[irun] = assemble_matrix_with_compressed_snd_and_with_auto_cache_time!(sparse, copy_psparse_args...)
         end
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_with_compressed_snd_and_with_auto_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
             copy_V = copy(psparse_args[3])
+            MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = assemble_matrix_with_compressed_snd_and_with_auto_cache_time!(A, copy_V, cacheA)
         end
     end
@@ -254,9 +168,29 @@ function benchmark_psparse(distribute, job_params)
     end
 end
 
-function experiment(job_params; folder_name=get_folder_name(job_params), path=get_path(job_params, folder_name))
-    results_in_main = with_mpi(distribute -> benchmark_psparse(distribute, job_params))
-    map_main(results_in_main) do results
+function experiment(job_params; root_name="", folder_name=nothing, path=nothing, distribute=nothing, summary=true)
+    if distribute == nothing
+        results_in_main = with_mpi() do distribute
+            start_params = (nruns=1, cells_per_dir=job_params.parts_per_dir, parts_per_dir=job_params.parts_per_dir, method=job_params.method)
+            benchmark_psparse(distribute, start_params)
+            benchmark_psparse(distribute, job_params)
+        end
+    else
+        start_params = (nruns=1, cells_per_dir=job_params.parts_per_dir, parts_per_dir=job_params.parts_per_dir, method=job_params.method)
+        benchmark_psparse(distribute, start_params)
+        results_in_main = benchmark_psparse(distribute, job_params)
+    end
+    if isnothing(folder_name)
+        folder_name = map_main(results_in_main) do results
+            get_folder_name(job_params, root_name)
+        end
+    end
+    if isnothing(path)
+        path = map_main(folder_name) do folder_name
+            get_path(job_params, folder_name)
+        end
+    end
+    results = map_main(results_in_main, path) do results, path
         open(path, "w") do f
             JSON.print(f, results, 2)
         end
@@ -264,93 +198,86 @@ function experiment(job_params; folder_name=get_folder_name(job_params), path=ge
         rebuildmat = results.rebuildmat
         (; path, buildmat, rebuildmat)
     end
-end
-
-function experiments(params)
-    parts_per_dir = params.parts_per_dir
-    cells_per_dir = parts_per_dir
-    nruns = 1
-    # job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[1])
-    # with_mpi(distribute -> benchmark_psparse(distribute, job_params))
-    # job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[2])
-    # with_mpi(distribute -> benchmark_psparse(distribute, job_params))
-    # job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[3])
-    # with_mpi(distribute -> benchmark_psparse(distribute, job_params))
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[4])
-    with_mpi(distribute -> benchmark_psparse(distribute, job_params))
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[5])
-    with_mpi(distribute -> benchmark_psparse(distribute, job_params))
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[6])
-    with_mpi(distribute -> benchmark_psparse(distribute, job_params))
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[7])
-    with_mpi(distribute -> benchmark_psparse(distribute, job_params))
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[8])
-    with_mpi(distribute -> benchmark_psparse(distribute, job_params))
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[9])
-    with_mpi(distribute -> benchmark_psparse(distribute, job_params))
-
-    execution_times = DataStructures.OrderedDict{String, @NamedTuple{build_time::Vector{Float64}, rebuild_time::Vector{Float64}}}()
-    nruns, cells_per_dir, parts_per_dir = params
-    folder_name = get_folder_name(params)
-
-    # job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[1])
-    # result = experiment(job_params, folder_name=folder_name)
-    # map_main(result) do result
-    #     execution_times[job_params.method] = get_execution_time(result...)
-    # end
-
-    # job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[2])
-    # result = experiment(job_params, folder_name=folder_name)
-    # map_main(result) do result
-    #     execution_times[job_params.method] = get_execution_time(result...)
-    # end
-
-    # job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[3])
-    # result = experiment(job_params, folder_name=folder_name)
-    # map_main(result) do result
-    #     execution_times[job_params.method] = get_execution_time(result...)
-    # end
-
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[4])
-    result = experiment(job_params, folder_name=folder_name)
-    map_main(result) do result
-        execution_times[job_params.method] = get_execution_time(result...)
-    end
-
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[5])
-    result = experiment(job_params, folder_name=folder_name)
-    map_main(result) do result
-        execution_times[job_params.method] = get_execution_time(result...)
-    end
-
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[6])
-    result = experiment(job_params, folder_name=folder_name)
-    map_main(result) do result
-        execution_times[job_params.method] = get_execution_time(result...)
-    end
-
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[7])
-    result = experiment(job_params, folder_name=folder_name)
-    map_main(result) do result
-        execution_times[job_params.method] = get_execution_time(result...)
-    end
-
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[8])
-    result = experiment(job_params, folder_name=folder_name)
-    map_main(result) do result
-        execution_times[job_params.method] = get_execution_time(result...)
-    end
-
-    job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[9])
-    result = experiment(job_params, folder_name=folder_name)
-    map_main(result) do result
-        execution_times[job_params.method] = get_execution_time(result...)
-    end
-    
-    map_main(result) do result
-        open(get_path("summary", folder_name), "w") do f
-            JSON.print(f, execution_times, 2)
+    if summary
+        map_main(results, folder_name) do results, folder_name
+            summary_path = get_path("summary", folder_name)
+            if isfile(summary_path)
+                summary = JSON.parsefile(summary_path; dicttype=DataStructures.OrderedDict)
+                summary[job_params.method] = get_execution_time(results...)
+            else
+                summary = job_params.method => get_execution_time(results...)
+            end
+            open(summary_path, "w") do f
+                JSON.print(f, summary, 2)
+            end
         end
     end
-    
+    results
+end
+
+function experiments(params; root_name="", distribute=nothing)
+    function actual_function(params, root_name, distribute)
+        execution_times = DataStructures.OrderedDict{String, @NamedTuple{build_time::Vector{Float64}, rebuild_time::Vector{Float64}}}()
+        nruns, cells_per_dir, parts_per_dir = params
+
+        job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[5])
+        result = experiment(job_params; root_name=root_name, distribute=distribute, summary=false)
+        folder_name = map_main(result) do result
+            execution_times[job_params.method] = get_execution_time(result...)
+            get_folder_name(params, root_name)
+        end
+
+        # job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[4])
+        # result = experiment(job_params; folder_name=folder_name, distribute=distribute, summary=false)
+        # map_main(result) do result
+        #     execution_times[job_params.method] = get_execution_time(result...)
+        # end
+
+        # job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[6])
+        # result = experiment(job_params; folder_name=folder_name, distribute=distribute, summary=false)
+        # map_main(result) do result
+        #     execution_times[job_params.method] = get_execution_time(result...)
+        # end
+
+        # job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[7])
+        # result = experiment(job_params; folder_name=folder_name, distribute=distribute, summary=false)
+        # map_main(result) do result
+        #     execution_times[job_params.method] = get_execution_time(result...)
+        # end
+
+        # job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[8])
+        # result = experiment(job_params; folder_name=folder_name, distribute=distribute, summary=false)
+        # map_main(result) do result
+        #     execution_times[job_params.method] = get_execution_time(result...)
+        # end
+
+        # job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[9])
+        # result = experiment(job_params; folder_name=folder_name, distribute=distribute, summary=false)
+        # map_main(result) do result
+        #     execution_times[job_params.method] = get_execution_time(result...)
+        # end
+        
+        map_main(result, folder_name) do result, folder_name
+            open(get_path("summary", folder_name), "w") do f
+                JSON.print(f, execution_times, 2)
+            end
+        end
+    end
+
+    if distribute == nothing
+        with_mpi() do distribute
+            actual_function(params, root_name, distribute)
+        end
+    else
+        actual_function(params, root_name, distribute)
+    end
+end
+
+function experiments_set(parts_per_dir; root_name="")
+    with_mpi() do distribute
+        cells_per_dir = (80, 80, 80)
+        nruns = 80
+        params = (; nruns, cells_per_dir, parts_per_dir)
+        experiments(params; root_name=root_name, distribute=distribute)
+    end
 end
