@@ -191,7 +191,7 @@ function run_experiments_set(node, core; dir_name="", project=Base.active_projec
                 if state == "COMPLETED"
                     rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
                     break
-                elseif state == "FAILED"
+                elseif state == "FAILED" || occursin("CANCELLED", state)
                     break
                 end
             end
@@ -201,7 +201,7 @@ function run_experiments_set(node, core; dir_name="", project=Base.active_projec
         catch
             rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
             try
-                run(pipeline(`preserve -c $jobid`; stdout=devnull, stderr=devnull))
+                run(pipeline(`scancel $jobid`; stdout=devnull, stderr=devnull))
             catch
             end
             result_path = joinpath(result_dir, basename(data_path))
@@ -229,7 +229,7 @@ function run_experiments(node, core, cells_per_dirs, nrunss; dir_name="", projec
                 if state == "COMPLETED"
                     rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
                     break
-                elseif state == "FAILED"
+                elseif state == "FAILED" || occursin("CANCELLED", state)
                     break
                 end
             end
@@ -239,7 +239,7 @@ function run_experiments(node, core, cells_per_dirs, nrunss; dir_name="", projec
         catch
             rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
             try
-                run(pipeline(`preserve -c $jobid`; stdout=devnull, stderr=devnull))
+                run(pipeline(`scancel $jobid`; stdout=devnull, stderr=devnull))
             catch
             end
             result_path = joinpath(result_dir, basename(data_path))
@@ -267,7 +267,7 @@ function run_experiment(node, core, cells_per_dirs, nrunss, methods; dir_name=""
                 if state == "COMPLETED"
                     rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
                     break
-                elseif state == "FAILED"
+                elseif state == "FAILED" || occursin("CANCELLED", state)
                     break
                 end
             end
@@ -277,7 +277,7 @@ function run_experiment(node, core, cells_per_dirs, nrunss, methods; dir_name=""
         catch
             rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
             try
-                run(pipeline(`preserve -c $jobid`; stdout=devnull, stderr=devnull))
+                run(pipeline(`scancel $jobid`; stdout=devnull, stderr=devnull))
             catch
             end
             result_path = joinpath(result_dir, basename(data_path))
