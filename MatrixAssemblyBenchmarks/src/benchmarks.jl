@@ -139,8 +139,6 @@ function benchmark_psparse(distribute, job_params)
                 PetscCall.@check_error_code PetscCall.MatSetSizes(A[], m, n, M, N)
                 PetscCall.@check_error_code PetscCall.MatSetPreallocationCOO(A[], ncoo, I, J)
                 PetscCall.@check_error_code PetscCall.MatSetValuesCOO(A[], V, PetscCall.ADD_VALUES)
-                PetscCall.@check_error_code PetscCall.MatAssemblyBegin(A[], PetscCall.MAT_FINAL_ASSEMBLY)
-                PetscCall.@check_error_code PetscCall.MatAssemblyEnd(A[], PetscCall.MAT_FINAL_ASSEMBLY)
             end
             PetscCall.@check_error_code PetscCall.MatDestroy(A)
         end
@@ -150,14 +148,10 @@ function benchmark_psparse(distribute, job_params)
         PetscCall.@check_error_code PetscCall.MatSetSizes(A[], m, n, M, N)
         PetscCall.@check_error_code PetscCall.MatSetPreallocationCOO(A[], ncoo, I, J)
         PetscCall.@check_error_code PetscCall.MatSetValuesCOO(A[], V, PetscCall.ADD_VALUES)
-        PetscCall.@check_error_code PetscCall.MatAssemblyBegin(A[], PetscCall.MAT_FINAL_ASSEMBLY)
-        PetscCall.@check_error_code PetscCall.MatAssemblyEnd(A[], PetscCall.MAT_FINAL_ASSEMBLY)
         for irun in 1:nruns
             MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = @elapsed begin
                 PetscCall.@check_error_code PetscCall.MatSetValuesCOO(A[], V, PetscCall.ADD_VALUES)
-                PetscCall.@check_error_code PetscCall.MatAssemblyBegin(A[], PetscCall.MAT_FINAL_ASSEMBLY)
-                PetscCall.@check_error_code PetscCall.MatAssemblyEnd(A[], PetscCall.MAT_FINAL_ASSEMBLY)
             end
         end
         PetscCall.@check_error_code PetscCall.MatDestroy(A)
