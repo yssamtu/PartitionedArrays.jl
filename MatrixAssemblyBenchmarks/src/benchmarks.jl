@@ -77,7 +77,30 @@ function benchmark_psparse(distribute, job_params)
     t_buildmat = zeros(nruns)
     t_rebuildmat = zeros(nruns)
     petsc_comm = PetscCall.setup_petsc_comm(parts)
-    function petsc_setvalues(I, J, V, rows, cols)
+    function get_nz(I, J, V, rows, cols)
+        copy_I = deepcopy(I)
+        copy_J = deepcopy(J)
+        copy_V = deepcopy(V)
+        copy_rows = deepcopy(rows)
+        copy_cols = deepcopy(cols)
+        cal_A, _ = assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(sparse, copy_I, copy_J, copy_V, copy_rows, copy_cols) |> fetch
+        map(partition(cal_A)) do cal_A
+            own_rowvals = rowvals(cal_A.blocks.own_own)
+            ghost_rowvals = rowvals(cal_A.blocks.own_ghost)
+            len_d = maximum(own_rowvals; init=0)
+            len_o = maximum(ghost_rowvals; init=0)
+            d_nnz = zeros(Ti, len_d)
+            o_nnz = zeros(Ti, len_o)
+            for i in own_rowvals
+                d_nnz[i] += 1
+            end
+            for i in ghost_rowvals
+                o_nnz[i] += 1
+            end
+            maximum(d_nnz; init=0), maximum(o_nnz; init=0)
+        end
+    end
+    function petsc_setvalues(I, J, V, rows, cols, d_nz, o_nz)
         m = own_length(rows)
         n = own_length(cols)
         M = global_length(rows)
@@ -91,7 +114,7 @@ function benchmark_psparse(distribute, job_params)
                 PetscCall.@check_error_code PetscCall.MatCreate(petsc_comm, A)
                 PetscCall.@check_error_code PetscCall.MatSetType(A[], PetscCall.MATMPIAIJ)
                 PetscCall.@check_error_code PetscCall.MatSetSizes(A[], m, n, M, N)
-                PetscCall.@check_error_code PetscCall.MatMPIAIJSetPreallocation(A[], 32, C_NULL, 32, C_NULL)
+                PetscCall.@check_error_code PetscCall.MatMPIAIJSetPreallocation(A[], d_nz, C_NULL, o_nz, C_NULL)
                 for p in 1:length(I)
                     PetscCall.@check_error_code PetscCall.MatSetValues(A[], 1, view(I, p:p), 1, view(J, p:p), view(V, p:p), PetscCall.ADD_VALUES)
                 end
@@ -104,7 +127,7 @@ function benchmark_psparse(distribute, job_params)
         PetscCall.@check_error_code PetscCall.MatCreate(petsc_comm, A)
         PetscCall.@check_error_code PetscCall.MatSetType(A[], PetscCall.MATMPIAIJ)
         PetscCall.@check_error_code PetscCall.MatSetSizes(A[], m, n, M, N)
-        PetscCall.@check_error_code PetscCall.MatMPIAIJSetPreallocation(A[], 32, C_NULL, 32, C_NULL)
+        PetscCall.@check_error_code PetscCall.MatMPIAIJSetPreallocation(A[], d_nz, C_NULL, o_nz, C_NULL)
         for p in 1:length(I)
             PetscCall.@check_error_code PetscCall.MatSetValues(A[], 1, view(I, p:p), 1, view(J, p:p), view(V, p:p), PetscCall.ADD_VALUES)
         end
@@ -171,8 +194,9 @@ function benchmark_psparse(distribute, job_params)
             t_rebuildmat[irun] = @elapsed psparse!(A, V, cacheA) |> wait
         end
     elseif method == "petsc_setvalues"
+        d_nz, o_nz = get_nz(psparse_args...) |> tuple_of_arrays
         PetscCall.init(finalize_atexit=false)
-        map(petsc_setvalues, psparse_args...)
+        map(petsc_setvalues, psparse_args..., d_nz, o_nz)
         PetscCall.finalize()
     elseif method == "petsc_coo"
         PetscCall.init(finalize_atexit=false)
