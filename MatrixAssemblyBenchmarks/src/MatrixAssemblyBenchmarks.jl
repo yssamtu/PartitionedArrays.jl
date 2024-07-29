@@ -1,7 +1,7 @@
 module MatrixAssemblyBenchmarks
 
 using PartitionedArrays
-using PartitionedArrays: local_permutation, split_matrix_blocks, split_matrix
+using PartitionedArrays: local_permutation, split_matrix_blocks, split_matrix, FakeTask, @fake_async
 using SparseArrays
 using PetscCall
 using MPI

@@ -114,7 +114,7 @@ function assemble_matrix_no_compressed_snd_and_no_cache!(f, I, J, V, rows, cols)
     t_I = exchange(I_snd_buf, graph)
     t_J = exchange(J_snd_buf, graph)
     t_V = exchange(V_snd_buf, graph)
-    @async begin
+    @fake_async begin
         I_rcv_buf = fetch(t_I)
         J_rcv_buf = fetch(t_J)
         V_rcv_buf = fetch(t_V)
@@ -245,7 +245,7 @@ function assemble_matrix_with_compressed_snd_and_no_cache!(f, I, J, V, rows, col
     t_I = exchange(I_snd_buf, graph)
     t_J = exchange(J_snd_buf, graph)
     t_V = exchange(V_snd_buf, graph)
-    @async begin
+    @fake_async begin
         I_rcv_buf = fetch(t_I)
         J_rcv_buf = fetch(t_J)
         V_rcv_buf = fetch(t_V)
@@ -421,7 +421,7 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(f, I, J, V
     t_I = exchange(I_snd_buf, graph)
     t_J = exchange(J_snd_buf, graph)
     t_V = exchange(V_snd_buf, graph)
-    @async begin
+    @fake_async begin
         I_rcv_buf = fetch(t_I)
         J_rcv_buf = fetch(t_J)
         V_rcv_buf = fetch(t_V)
@@ -482,7 +482,7 @@ function assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(A, V, cach
     graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse = cache
     map(partition_and_setup_cache_snd!, V_snd_buf, V, hold_data_size, change_snd, perm_snd)
     t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
-    @async begin
+    @fake_async begin
         fetch(t_V)
         map(store_recv_data!, V, hold_data_size, V_rcv_buf)
         map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
@@ -645,7 +645,7 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(f, I, J,
     t_I = exchange(I_snd_buf, graph)
     t_J = exchange(J_snd_buf, graph)
     t_V = exchange(V_snd_buf, graph)
-    @async begin
+    @fake_async begin
         I_rcv_buf = fetch(t_I)
         J_rcv_buf = fetch(t_J)
         V_rcv_buf = fetch(t_V)
@@ -705,7 +705,7 @@ function assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(A, V, ca
     graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse = cache
     map(partition_and_setup_cache_snd!, V_snd_buf, V, hold_data_size, change_snd, perm_snd)
     t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
-    @async begin
+    @fake_async begin
         fetch(t_V)
         map(store_recv_data!, V, hold_data_size, V_rcv_buf)
         map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
@@ -894,7 +894,7 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(f, I, J, V, rows
     t_I = exchange(I_snd_buf, graph)
     t_J = exchange(J_snd_buf, graph)
     t_V = exchange(V_snd_buf, graph)
-    @async begin
+    @fake_async begin
         I_rcv_buf = fetch(t_I)
         J_rcv_buf = fetch(t_J)
         V_rcv_buf = fetch(t_V)
@@ -977,7 +977,7 @@ function assemble_matrix_no_compressed_snd_and_with_auto_cache!(A, V, cache)
     graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse = cache
     map(partition_and_setup_cache_snd!, V_snd_buf, V, hold_data_size, change_snd, perm_snd)
     t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
-    @async begin
+    @fake_async begin
         fetch(t_V)
         map(store_recv_data!, V, hold_data_size, V_rcv_buf)
         map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
@@ -1151,7 +1151,7 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(f, I, J,
     t_I = exchange(I_snd_buf, graph)
     t_J = exchange(J_snd_buf, graph)
     t_V = exchange(V_snd_buf, graph)
-    @async begin
+    @fake_async begin
         I_rcv_buf = fetch(t_I)
         J_rcv_buf = fetch(t_J)
         V_rcv_buf = fetch(t_V)
@@ -1213,7 +1213,7 @@ function assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(A, V, ca
     graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse = cache
     map(partition_and_setup_cache_snd!, V_snd_buf, V, hold_data_size, change_snd, perm_snd)
     t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
-    @async begin
+    @fake_async begin
         fetch(t_V)
         map(store_recv_data!, V, hold_data_size, V_rcv_buf)
         map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
@@ -1389,7 +1389,7 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(f, I, 
     t_I = exchange(I_snd_buf, graph)
     t_J = exchange(J_snd_buf, graph)
     t_V = exchange(V_snd_buf, graph)
-    @async begin
+    @fake_async begin
         I_rcv_buf = fetch(t_I)
         J_rcv_buf = fetch(t_J)
         V_rcv_buf = fetch(t_V)
@@ -1450,7 +1450,7 @@ function assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(A, V, 
     graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse = cache
     map(partition_and_setup_cache_snd!, V_snd_buf, V, hold_data_size, change_snd, perm_snd)
     t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
-    @async begin
+    @fake_async begin
         fetch(t_V)
         map(store_recv_data!, V, hold_data_size, V_rcv_buf)
         map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)
@@ -1652,7 +1652,7 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(f, I, J, V, ro
     t_I = exchange(I_snd_buf, graph)
     t_J = exchange(J_snd_buf, graph)
     t_V = exchange(V_snd_buf, graph)
-    @async begin
+    @fake_async begin
         I_rcv_buf = fetch(t_I)
         J_rcv_buf = fetch(t_J)
         V_rcv_buf = fetch(t_V)
@@ -1736,7 +1736,7 @@ function assemble_matrix_with_compressed_snd_and_with_auto_cache!(A, V, cache)
     graph, V_snd_buf, V_rcv_buf, hold_data_size, change_snd, perm_snd, own_data_size, change_sparse, perm_sparse = cache
     map(partition_and_setup_cache_snd!, V_snd_buf, V, hold_data_size, change_snd, perm_snd)
     t_V = exchange!(V_rcv_buf, V_snd_buf, graph)
-    @async begin
+    @fake_async begin
         fetch(t_V)
         map(store_recv_data!, V, hold_data_size, V_rcv_buf)
         map(split_and_compress!, partition(A), V, own_data_size, change_sparse, perm_sparse)

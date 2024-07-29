@@ -89,7 +89,7 @@ function benchmark_psparse(distribute, job_params)
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
-            copy_V = copy(psparse_args[3])
+            copy_V = deepcopy(psparse_args[3])
             MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = assemble_matrix_no_compressed_snd_and_with_int_vector_cache_time!(A, copy_V, cacheA)
         end
@@ -102,7 +102,7 @@ function benchmark_psparse(distribute, job_params)
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
-            copy_V = copy(psparse_args[3])
+            copy_V = deepcopy(psparse_args[3])
             MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache_time!(A, copy_V, cacheA)
         end
@@ -115,7 +115,7 @@ function benchmark_psparse(distribute, job_params)
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_no_compressed_snd_and_with_auto_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
-            copy_V = copy(psparse_args[3])
+            copy_V = deepcopy(psparse_args[3])
             MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = assemble_matrix_no_compressed_snd_and_with_auto_cache_time!(A, copy_V, cacheA)
         end
@@ -128,7 +128,7 @@ function benchmark_psparse(distribute, job_params)
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
-            copy_V = copy(psparse_args[3])
+            copy_V = deepcopy(psparse_args[3])
             MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = assemble_matrix_with_compressed_snd_and_with_int_vector_cache_time!(A, copy_V, cacheA)
         end
@@ -141,7 +141,7 @@ function benchmark_psparse(distribute, job_params)
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
-            copy_V = copy(psparse_args[3])
+            copy_V = deepcopy(psparse_args[3])
             MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache_time!(A, copy_V, cacheA)
         end
@@ -154,7 +154,7 @@ function benchmark_psparse(distribute, job_params)
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_with_compressed_snd_and_with_auto_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
-            copy_V = copy(psparse_args[3])
+            copy_V = deepcopy(psparse_args[3])
             MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = assemble_matrix_with_compressed_snd_and_with_auto_cache_time!(A, copy_V, cacheA)
         end
@@ -226,36 +226,6 @@ function experiments(params; root_name="", distribute=nothing)
             execution_times[job_params.method] = get_execution_time(result...)
             get_folder_name(params, root_name)
         end
-
-        # job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[4])
-        # result = experiment(job_params; folder_name=folder_name, distribute=distribute, summary=false)
-        # map_main(result) do result
-        #     execution_times[job_params.method] = get_execution_time(result...)
-        # end
-
-        # job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[6])
-        # result = experiment(job_params; folder_name=folder_name, distribute=distribute, summary=false)
-        # map_main(result) do result
-        #     execution_times[job_params.method] = get_execution_time(result...)
-        # end
-
-        # job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[7])
-        # result = experiment(job_params; folder_name=folder_name, distribute=distribute, summary=false)
-        # map_main(result) do result
-        #     execution_times[job_params.method] = get_execution_time(result...)
-        # end
-
-        # job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[8])
-        # result = experiment(job_params; folder_name=folder_name, distribute=distribute, summary=false)
-        # map_main(result) do result
-        #     execution_times[job_params.method] = get_execution_time(result...)
-        # end
-
-        # job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[9])
-        # result = experiment(job_params; folder_name=folder_name, distribute=distribute, summary=false)
-        # map_main(result) do result
-        #     execution_times[job_params.method] = get_execution_time(result...)
-        # end
         
         map_main(result, folder_name) do result, folder_name
             open(get_path("summary", folder_name), "w") do f

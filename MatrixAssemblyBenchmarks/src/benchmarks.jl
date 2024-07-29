@@ -211,7 +211,7 @@ function benchmark_psparse(distribute, job_params)
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
-            copy_V = copy(psparse_args[3])
+            copy_V = deepcopy(psparse_args[3])
             MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = @elapsed assemble_matrix_no_compressed_snd_and_with_int_vector_cache!(A, copy_V, cacheA) |> wait
         end
@@ -224,7 +224,7 @@ function benchmark_psparse(distribute, job_params)
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
-            copy_V = copy(psparse_args[3])
+            copy_V = deepcopy(psparse_args[3])
             MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = @elapsed assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(A, copy_V, cacheA) |> wait
         end
@@ -237,7 +237,7 @@ function benchmark_psparse(distribute, job_params)
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_no_compressed_snd_and_with_auto_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
-            copy_V = copy(psparse_args[3])
+            copy_V = deepcopy(psparse_args[3])
             MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = @elapsed assemble_matrix_no_compressed_snd_and_with_auto_cache!(A, copy_V, cacheA) |> wait
         end
@@ -250,7 +250,7 @@ function benchmark_psparse(distribute, job_params)
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
-            copy_V = copy(psparse_args[3])
+            copy_V = deepcopy(psparse_args[3])
             MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = @elapsed assemble_matrix_with_compressed_snd_and_with_int_vector_cache!(A, copy_V, cacheA) |> wait
         end
@@ -263,7 +263,7 @@ function benchmark_psparse(distribute, job_params)
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
-            copy_V = copy(psparse_args[3])
+            copy_V = deepcopy(psparse_args[3])
             MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = @elapsed assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache!(A, copy_V, cacheA) |> wait
         end
@@ -276,7 +276,7 @@ function benchmark_psparse(distribute, job_params)
         copy_psparse_args = deepcopy(psparse_args)
         A, cacheA = assemble_matrix_with_compressed_snd_and_with_auto_cache!(sparse, copy_psparse_args...) |> fetch
         for irun in 1:nruns
-            copy_V = copy(psparse_args[3])
+            copy_V = deepcopy(psparse_args[3])
             MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = @elapsed assemble_matrix_with_compressed_snd_and_with_auto_cache!(A, copy_V, cacheA) |> wait
         end
