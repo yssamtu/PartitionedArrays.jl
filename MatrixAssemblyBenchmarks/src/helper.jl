@@ -47,68 +47,13 @@ function get_params(path)
     (; nruns, cells_per_dir, parts_per_dir, method)
 end
 
-function get_execution_time(path)
-    function get_maximum(v)
-        np = length(v)
-        nruns = length(v[1])
-        while np > 1
-            left = 1
-            right = np
-            while left < right
-                v[left] = max.(v[left], v[right])
-                left += 1
-                right -= 1
-            end
-            np = (np + 1) >> 1
-        end
-        v[1]
-    end
-    json_dict = JSON.parsefile(path)
-    buildmat = Vector{Vector{Float64}}(json_dict["buildmat"])
-    rebuildmat = Vector{Vector{Float64}}(json_dict["rebuildmat"])
-    build_time = minimum(get_maximum(buildmat))
-    rebuild_time = minimum(get_maximum(rebuildmat))
-    (; build_time, rebuild_time)
-end
-
-function get_execution_time(path, buildmat, rebuildmat)
-    function get_maximum(v)
-        np = length(v)
-        nruns = length(v[1])
-        while np > 1
-            left = 1
-            right = np
-            while left < right
-                v[left] = max.(v[left], v[right])
-                left += 1
-                right -= 1
-            end
-            np = (np + 1) >> 1
-        end
-        v[1]
-    end
-    build_time = minimum(get_maximum(buildmat))
-    rebuild_time = minimum(get_maximum(rebuildmat))
-    (; build_time, rebuild_time)
-end
-
-function get_all_execution_times(params)
-    folder_name = get_folder_name(params)
-    execution_times = DataStructures.OrderedDict{String,@NamedTuple{build_time::Float64, rebuild_time::Float64}}()
-    for method in methods
-        path = get_path(method, folder_name)
-        execution_times[method] = get_execution_time(path)
-    end
-    execution_times
-end
-
-function create_job_file(node, core; project=Base.active_project(), dir_name="", cells_per_dirs=nothing, nrunss=nothing, methods=nothing)
+function create_job_file(node, core, experiment_type; project=Base.active_project(), dir_name="", cells_per_dirs=nothing, nrunss=nothing, methods=nothing)
     header_params = Dict(string(:node) => node, string(:core) => core)
     np = node * core
     project = abspath(project)
     parts_per_dir = node_core_partitions[(node, core)]
     root_name = "\"($node,$core)\""
-    body_head_params = Dict(string(:np) => np, string(:project) => project, string(:parts_per_dir) => parts_per_dir, string(:root_name) => root_name)
+    body_head_params = Dict(string(:np) => np, string(:project) => project, string(:parts_per_dir) => parts_per_dir, string(:root_name) => root_name, string(:experiment_type) => "\"$experiment_type\"")
     dir_name = mkpath(abspath(dir_name))
     if !isnothing(methods)
         file_name = joinpath(dir_name, "$(hash([node, core, cells_per_dirs, nrunss, methods])).sh")
@@ -126,21 +71,21 @@ function create_job_file(node, core; project=Base.active_project(), dir_name="",
             if isnothing(methods)
                 if eltype(cells_per_dirs) <: Tuple
                     for (cells_per_dir, nruns) in zip(cells_per_dirs, nrunss)
-                        body_params = Dict(string(:cells_per_dir) => cells_per_dir, string(:nruns) => nruns)
+                        body_params = Dict(string(:cells_per_dir) => cells_per_dir, string(:nruns) => nruns, string(:experiment_type) => "\"$experiment_type\"")
                         render(io, template_experiements_body, body_params)
                     end
                 else
-                    body_params = Dict(string(:cells_per_dir) => cells_per_dirs, string(:nruns) => nrunss)
+                    body_params = Dict(string(:cells_per_dir) => cells_per_dirs, string(:nruns) => nrunss, string(:experiment_type) => "\"$experiment_type\"")
                     render(io, template_experiements_body, body_params)
                 end
             else
                 if eltype(cells_per_dirs) <: Tuple
                     for (cells_per_dir, nruns, method) in zip(cells_per_dirs, nrunss, methods)
-                        body_params = Dict(string(:cells_per_dir) => cells_per_dir, string(:nruns) => nruns, string(:method) => "\"$method\"")
+                        body_params = Dict(string(:cells_per_dir) => cells_per_dir, string(:nruns) => nruns, string(:method) => "\"$method\"", string(:experiment_type) => "\"$experiment_type\"")
                         render(io, template_experiement_body, body_params)
                     end
                 else
-                    body_params = Dict(string(:cells_per_dir) => cells_per_dirs, string(:nruns) => nrunss, string(:method) => "\"$methods\"")
+                    body_params = Dict(string(:cells_per_dir) => cells_per_dirs, string(:nruns) => nrunss, string(:method) => "\"$methods\"", string(:experiment_type) => "\"$experiment_type\"")
                     render(io, template_experiement_body, body_params)
                 end
             end
@@ -148,144 +93,6 @@ function create_job_file(node, core; project=Base.active_project(), dir_name="",
         end
     end
     return file_name
-end
-
-function run_experiments_sets(; dir_name="", project=Base.active_project(), nexec=1)
-    original_dir = pwd()
-    dir_name = abspath(dir_name)
-    tasks = []
-    Base.exit_on_sigint(false)
-    @sync for (node, core) in keys(node_core_partitions)
-        try
-            while length(tasks) >= 20
-                for i in length(tasks):-1:1
-                    if istaskdone(tasks[i])
-                        deleteat!(tasks, i)
-                    end
-                end
-                yield()
-            end
-            task = @async run_experiments_set(node, core; dir_name=dir_name, project=project, nexec=nexec)
-            push!(tasks, task)
-        catch
-            break
-        end
-    end
-    cd(original_dir)
-end
-
-function run_experiments_set(node, core; dir_name="", project=Base.active_project(), nexec=1)
-    cmd = :sbatch
-    file_name = create_job_file(node, core; project=project, dir_name=dir_name)
-    original_dir = pwd()
-    cd(abspath(dir_name))
-    result_dir = mkpath(joinpath(pwd(), "result"))
-    data_path = joinpath(pwd(), "($node,$core)")
-    Base.exit_on_sigint(false)
-    while nexec > 0
-        jobid = nothing
-        try
-            jobid = readchomp(`$cmd --parsable $file_name`)
-            while true
-                state = split(readchomp(`sacct --jobs=$jobid --noheader --format=state --parsable2`), "\n")[1]
-                if state == "COMPLETED"
-                    rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
-                    break
-                elseif state == "FAILED" || occursin("CANCELLED", state)
-                    break
-                end
-            end
-            result_path = joinpath(result_dir, basename(data_path))
-            merge_dir(result_path, data_path)
-            nexec -= 1
-        catch
-            rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
-            try
-                run(pipeline(`scancel $jobid`; stdout=devnull, stderr=devnull))
-            catch
-            end
-            result_path = joinpath(result_dir, basename(data_path))
-            merge_dir(result_path, data_path)
-            nexec = 0
-        end
-    end
-    cd(original_dir)
-end
-
-function run_experiments(node, core, cells_per_dirs, nrunss; dir_name="", project=Base.active_project(), nexec=1)
-    cmd = :sbatch
-    file_name = create_job_file(node, core; project=project, dir_name=dir_name, cells_per_dirs=cells_per_dirs, nrunss=nrunss)
-    original_dir = pwd()
-    cd(abspath(dir_name))
-    result_dir = mkpath(joinpath(pwd(), "result"))
-    data_path = joinpath(pwd(), "($node,$core)")
-    Base.exit_on_sigint(false)
-    while nexec > 0
-        jobid = nothing
-        try
-            jobid = readchomp(`$cmd --parsable $file_name`)
-            while true
-                state = split(readchomp(`sacct --jobs=$jobid --noheader --format=state --parsable2`), "\n")[1]
-                if state == "COMPLETED"
-                    rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
-                    break
-                elseif state == "FAILED" || occursin("CANCELLED", state)
-                    break
-                end
-            end
-            result_path = joinpath(result_dir, basename(data_path))
-            merge_dir(result_path, data_path)
-            nexec -= 1
-        catch
-            rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
-            try
-                run(pipeline(`scancel $jobid`; stdout=devnull, stderr=devnull))
-            catch
-            end
-            result_path = joinpath(result_dir, basename(data_path))
-            merge_dir(result_path, data_path)
-            nexec = 0
-        end
-    end
-    cd(original_dir)
-end
-
-function run_experiment(node, core, cells_per_dirs, nrunss, methods; dir_name="", project=Base.active_project(), nexec=1)
-    cmd = :sbatch
-    file_name = create_job_file(node, core; project=project, dir_name=dir_name, cells_per_dirs=cells_per_dirs, nrunss=nrunss, methods=methods)
-    original_dir = pwd()
-    cd(abspath(dir_name))
-    result_dir = mkpath(joinpath(pwd(), "result"))
-    data_path = joinpath(pwd(), "($node,$core)")
-    Base.exit_on_sigint(false)
-    while nexec > 0
-        jobid = nothing
-        try
-            jobid = readchomp(`$cmd --parsable $file_name`)
-            while true
-                state = split(readchomp(`sacct --jobs=$jobid --noheader --format=state --parsable2`), "\n")[1]
-                if state == "COMPLETED"
-                    rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
-                    break
-                elseif state == "FAILED" || occursin("CANCELLED", state)
-                    break
-                end
-            end
-            result_path = joinpath(result_dir, basename(data_path))
-            merge_dir(result_path, data_path)
-            nexec -= 1
-        catch
-            rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
-            try
-                run(pipeline(`scancel $jobid`; stdout=devnull, stderr=devnull))
-            catch
-            end
-            result_path = joinpath(result_dir, basename(data_path))
-            merge_dir(result_path, data_path)
-            nexec = 0
-        end
-    end
-    cd(original_dir)
 end
 
 function merge_file(result_case, new_case)
@@ -316,7 +123,7 @@ function merge_file(result_case, new_case)
                 result_summary[f][time] = new_data
                 summary_updated = true
                 book_updated = true
-            elseif new_data < result_summary[f][time]
+            elseif sum(new_data) < sum(result_summary[f][time])
                 result_summary[f][time] = new_data
                 k = "$(time[1:end-5])mat"
                 result_book[k] = new_book[k]
@@ -361,4 +168,139 @@ function merge_dir(result_dir, new_dir)
         end
     end
     rm(new_dir)
+end
+
+function run_experiments_sets(experiment_type; dir_name="", project=Base.active_project(), nexec=1, parallel=20)
+    tasks = []
+    Base.exit_on_sigint(false)
+    @sync for (node, core) in keys(node_core_partitions)
+        try
+            while length(tasks) >= parallel
+                for i in length(tasks):-1:1
+                    if istaskdone(tasks[i])
+                        deleteat!(tasks, i)
+                    end
+                end
+                yield()
+            end
+            task = @async run_experiments_set(node, core, experiment_type; dir_name=dir_name, project=project, nexec=nexec)
+            push!(tasks, task)
+        catch
+            break
+        end
+    end
+end
+
+function run_experiments_set(node, core, experiment_type; dir_name="", project=Base.active_project(), nexec=1)
+    cmd = :sbatch
+    original_dir = dirname(project)
+    dir_name = joinpath(original_dir, basename(dir_name))
+    file_name = create_job_file(node, core, experiment_type; project=project, dir_name=dir_name)
+    cd(dir_name)
+    result_dir = mkpath(joinpath(pwd(), "result"))
+    data_path = joinpath(pwd(), "($node,$core)")
+    Base.exit_on_sigint(false)
+    while nexec > 0
+        jobid = nothing
+        try
+            jobid = readchomp(`$cmd --parsable $file_name`)
+            while true
+                state = split(readchomp(`sacct --jobs=$jobid --noheader --format=state --parsable2`), "\n")[1]
+                if state == "COMPLETED"
+                    rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
+                    break
+                elseif state == "FAILED" || occursin("CANCELLED", state)
+                    break
+                end
+            end
+            result_path = joinpath(result_dir, basename(data_path))
+            merge_dir(result_path, data_path)
+            nexec -= 1
+        catch
+            rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
+            try
+                run(pipeline(`scancel $jobid`; stdout=devnull, stderr=devnull))
+            catch
+            end
+            result_path = joinpath(result_dir, basename(data_path))
+            merge_dir(result_path, data_path)
+            nexec = 0
+        end
+    end
+end
+
+function run_experiments(node, core, cells_per_dirs, nrunss, experiment_type; dir_name="", project=Base.active_project(), nexec=1)
+    cmd = :sbatch
+    original_dir = dirname(project)
+    dir_name = joinpath(original_dir, basename(dir_name))
+    file_name = create_job_file(node, core, experiment_type; project=project, dir_name=dir_name, cells_per_dirs=cells_per_dirs, nrunss=nrunss)
+    cd(dir_name)
+    result_dir = mkpath(joinpath(pwd(), "result"))
+    data_path = joinpath(pwd(), "($node,$core)")
+    Base.exit_on_sigint(false)
+    while nexec > 0
+        jobid = nothing
+        try
+            jobid = readchomp(`$cmd --parsable $file_name`)
+            while true
+                state = split(readchomp(`sacct --jobs=$jobid --noheader --format=state --parsable2`), "\n")[1]
+                if state == "COMPLETED"
+                    rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
+                    break
+                elseif state == "FAILED" || occursin("CANCELLED", state)
+                    break
+                end
+            end
+            result_path = joinpath(result_dir, basename(data_path))
+            merge_dir(result_path, data_path)
+            nexec -= 1
+        catch
+            rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
+            try
+                run(pipeline(`scancel $jobid`; stdout=devnull, stderr=devnull))
+            catch
+            end
+            result_path = joinpath(result_dir, basename(data_path))
+            merge_dir(result_path, data_path)
+            nexec = 0
+        end
+    end
+end
+
+function run_experiment(node, core, cells_per_dirs, nrunss, methods, experiment_type; dir_name="", project=Base.active_project(), nexec=1)
+    cmd = :sbatch
+    original_dir = dirname(project)
+    dir_name = joinpath(original_dir, basename(dir_name))
+    file_name = create_job_file(node, core, experiment_type; project=project, dir_name=dir_name, cells_per_dirs=cells_per_dirs, nrunss=nrunss, methods=methods)
+    cd(dir_name)
+    result_dir = mkpath(joinpath(pwd(), "result"))
+    data_path = joinpath(pwd(), "($node,$core)")
+    Base.exit_on_sigint(false)
+    while nexec > 0
+        jobid = nothing
+        try
+            jobid = readchomp(`$cmd --parsable $file_name`)
+            while true
+                state = split(readchomp(`sacct --jobs=$jobid --noheader --format=state --parsable2`), "\n")[1]
+                if state == "COMPLETED"
+                    rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
+                    break
+                elseif state == "FAILED" || occursin("CANCELLED", state)
+                    break
+                end
+            end
+            result_path = joinpath(result_dir, basename(data_path))
+            merge_dir(result_path, data_path)
+            nexec -= 1
+        catch
+            rm(joinpath(pwd(), "slurm-$jobid.out"); force=true)
+            try
+                run(pipeline(`scancel $jobid`; stdout=devnull, stderr=devnull))
+            catch
+            end
+            result_path = joinpath(result_dir, basename(data_path))
+            merge_dir(result_path, data_path)
+            nexec = 0
+        end
+    end
 end

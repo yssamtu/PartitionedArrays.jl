@@ -70,12 +70,17 @@ function coo_scalar_fem(cells_per_dir, parts_per_dir, parts, ::Type{T}, ::Type{T
     I, J, V, row_partition, col_partition
 end
 
-function benchmark_psparse(distribute, job_params)
+function benchmark(distribute, job_params)
     nruns, cells_per_dir, parts_per_dir, method = job_params
     np = prod(parts_per_dir)
     parts = distribute(LinearIndices((np,)))
-    t_buildmat = zeros(nruns)
-    t_rebuildmat = zeros(nruns)
+    if method == "each_part"
+        t_buildmat = Vector{Vector{Float64}}(undef, nruns)
+        t_rebuildmat = Vector{Vector{Float64}}(undef, nruns)
+    else
+        t_buildmat = zeros(nruns)
+        t_rebuildmat = zeros(nruns)
+    end
     petsc_comm = PetscCall.setup_petsc_comm(parts)
     function get_nz(I, J, V, rows, cols)
         copy_I = deepcopy(I)
@@ -280,6 +285,19 @@ function benchmark_psparse(distribute, job_params)
             MPI.Barrier(MPI.COMM_WORLD)
             t_rebuildmat[irun] = @elapsed assemble_matrix_with_compressed_snd_and_with_auto_cache!(A, copy_V, cacheA) |> wait
         end
+    else
+        for irun in 1:nruns
+            copy_psparse_args = deepcopy(psparse_args)
+            MPI.Barrier(MPI.COMM_WORLD)
+            t_buildmat[irun] = assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache_time!(sparse, copy_psparse_args...)
+        end
+        copy_psparse_args = deepcopy(psparse_args)
+        A, cacheA = assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache!(sparse, copy_psparse_args...) |> fetch
+        for irun in 1:nruns
+            copy_V = deepcopy(psparse_args[3])
+            MPI.Barrier(MPI.COMM_WORLD)
+            t_rebuildmat[irun] = assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache_time!(A, copy_V, cacheA)
+        end
     end
     ts_in_main = gather(map(p -> (; t_buildmat, t_rebuildmat), parts))
     results_in_main = map_main(ts_in_main) do ts
@@ -290,17 +308,24 @@ function benchmark_psparse(distribute, job_params)
     end
 end
 
-function experiment(job_params; root_name="", folder_name=nothing, path=nothing, distribute=nothing, summary=true)
+function experiment(job_params, experiment_type; root_name="", folder_name=nothing, path=nothing, distribute=nothing, summary=true)
+    if experiment_type == "each_part"
+        time_func = get_execution_time_each_part
+        benchmark_params = (nruns=job_params.nruns, cells_per_dir=job_params.parts_per_dir, parts_per_dir=job_params.parts_per_dir, method=experiment_type)
+    else
+        time_func = get_execution_time
+        benchmark_params = job_params
+    end
     if distribute == nothing
         results_in_main = with_mpi() do distribute
-            start_params = (nruns=1, cells_per_dir=job_params.parts_per_dir, parts_per_dir=job_params.parts_per_dir, method=job_params.method)
-            benchmark_psparse(distribute, start_params)
-            benchmark_psparse(distribute, job_params)
+            start_params = (nruns=1, cells_per_dir=benchmark_params.parts_per_dir, parts_per_dir=benchmark_params.parts_per_dir, method=benchmark_params.method)
+            benchmark(distribute, start_params)
+            benchmark(distribute, benchmark_params)
         end
     else
-        start_params = (nruns=1, cells_per_dir=job_params.parts_per_dir, parts_per_dir=job_params.parts_per_dir, method=job_params.method)
-        benchmark_psparse(distribute, start_params)
-        results_in_main = benchmark_psparse(distribute, job_params)
+        start_params = (nruns=1, cells_per_dir=benchmark_params.parts_per_dir, parts_per_dir=benchmark_params.parts_per_dir, method=benchmark_params.method)
+        benchmark(distribute, start_params)
+        results_in_main = benchmark(distribute, benchmark_params)
     end
     if isnothing(folder_name)
         folder_name = map_main(results_in_main) do results
@@ -325,9 +350,9 @@ function experiment(job_params; root_name="", folder_name=nothing, path=nothing,
             summary_path = get_path("summary", folder_name)
             if isfile(summary_path)
                 summary = JSON.parsefile(summary_path; dicttype=DataStructures.OrderedDict)
-                summary[job_params.method] = get_execution_time(results...)
+                summary[job_params.method] = time_func(results...)
             else
-                summary = job_params.method => get_execution_time(results...)
+                summary = job_params.method => time_func(results...)
             end
             open(summary_path, "w") do f
                 JSON.print(f, summary, 2)
@@ -337,66 +362,84 @@ function experiment(job_params; root_name="", folder_name=nothing, path=nothing,
     results
 end
 
-function experiments(params; root_name="", distribute=nothing)
+function experiments(params, experiment_type; root_name="", distribute=nothing)
     function actual_function(params, root_name, distribute)
-        execution_times = DataStructures.OrderedDict{String, @NamedTuple{build_time::Float64, rebuild_time::Float64}}()
+        execution_times = DataStructures.OrderedDict{String,@NamedTuple{build_time::Float64, rebuild_time::Float64}}()
         nruns, cells_per_dir, parts_per_dir = params
 
         job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[1])
-        result = experiment(job_params; root_name=root_name, distribute=distribute, summary=false)
+        result = experiment(job_params, experiment_type; root_name=root_name, distribute=distribute, summary=false)
         folder_name = map_main(result) do result
             execution_times[job_params.method] = get_execution_time(result...)
             get_folder_name(params, root_name)
         end
 
         job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[2])
-        result = experiment(job_params; folder_name=folder_name, distribute=distribute, summary=false)
+        result = experiment(job_params, experiment_type; folder_name=folder_name, distribute=distribute, summary=false)
         map_main(result) do result
             execution_times[job_params.method] = get_execution_time(result...)
         end
 
         job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[3])
-        result = experiment(job_params; folder_name=folder_name, distribute=distribute, summary=false)
+        result = experiment(job_params, experiment_type; folder_name=folder_name, distribute=distribute, summary=false)
         map_main(result) do result
             execution_times[job_params.method] = get_execution_time(result...)
         end
 
         job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[4])
-        result = experiment(job_params; folder_name=folder_name, distribute=distribute, summary=false)
+        result = experiment(job_params, experiment_type; folder_name=folder_name, distribute=distribute, summary=false)
         map_main(result) do result
             execution_times[job_params.method] = get_execution_time(result...)
         end
 
         job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[5])
-        result = experiment(job_params; folder_name=folder_name, distribute=distribute, summary=false)
+        result = experiment(job_params, experiment_type; folder_name=folder_name, distribute=distribute, summary=false)
         map_main(result) do result
             execution_times[job_params.method] = get_execution_time(result...)
         end
 
         job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[6])
-        result = experiment(job_params; folder_name=folder_name, distribute=distribute, summary=false)
+        result = experiment(job_params, experiment_type; folder_name=folder_name, distribute=distribute, summary=false)
         map_main(result) do result
             execution_times[job_params.method] = get_execution_time(result...)
         end
 
         job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[7])
-        result = experiment(job_params; folder_name=folder_name, distribute=distribute, summary=false)
+        result = experiment(job_params, experiment_type; folder_name=folder_name, distribute=distribute, summary=false)
         map_main(result) do result
             execution_times[job_params.method] = get_execution_time(result...)
         end
 
         job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[8])
-        result = experiment(job_params; folder_name=folder_name, distribute=distribute, summary=false)
+        result = experiment(job_params, experiment_type; folder_name=folder_name, distribute=distribute, summary=false)
         map_main(result) do result
             execution_times[job_params.method] = get_execution_time(result...)
         end
 
         job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[9])
-        result = experiment(job_params; folder_name=folder_name, distribute=distribute, summary=false)
+        result = experiment(job_params, experiment_type; folder_name=folder_name, distribute=distribute, summary=false)
         map_main(result) do result
             execution_times[job_params.method] = get_execution_time(result...)
         end
-        
+
+        map_main(result, folder_name) do result, folder_name
+            open(get_path("summary", folder_name), "w") do f
+                JSON.print(f, execution_times, 2)
+            end
+        end
+    end
+
+    function actual_function_each_part(params, root_name, distribute)
+        execution_times = DataStructures.OrderedDict{String,@NamedTuple{build_time::Vector{Float64}, rebuild_time::Vector{Float64}}}()
+        nruns, cells_per_dir, parts_per_dir = params
+
+        job_params = (; nruns, cells_per_dir, parts_per_dir, method=methods[5])
+        result = experiment(job_params, experiment_type; root_name=root_name, distribute=distribute, summary=false)
+        folder_name = map_main(result) do result
+            execution_times[job_params.method] = get_execution_time_each_part(result...)
+            get_folder_name(params, root_name)
+        end
+
         map_main(result, folder_name) do result, folder_name
             open(get_path("summary", folder_name), "w") do f
                 JSON.print(f, execution_times, 2)
@@ -406,38 +449,62 @@ function experiments(params; root_name="", distribute=nothing)
 
     if distribute == nothing
         with_mpi() do distribute
-            actual_function(params, root_name, distribute)
+            if experiment_type == "each_part"
+                actual_function_each_part(params, root_name, distribute)
+            else
+                actual_function(params, root_name, distribute)
+            end
         end
     else
-        actual_function(params, root_name, distribute)
+        if experiment_type == "each_part"
+            actual_function_each_part(params, root_name, distribute)
+        else
+            actual_function(params, root_name, distribute)
+        end
     end
 end
 
-function experiments_set(parts_per_dir; root_name="")
-    with_mpi() do distribute
-        cells_per_dir = (320, 320, 320)
-        nruns = 20
-        params = (; nruns, cells_per_dir, parts_per_dir)
-        experiments(params; root_name=root_name, distribute=distribute)
+function experiments_set(parts_per_dir, experiment_type; root_name="")
+    if experiment_type == "strong"
+        with_mpi() do distribute
+            cells_per_dir = (320, 320, 320)
+            nruns = 20
+            params = (; nruns, cells_per_dir, parts_per_dir)
+            experiments(params, experiment_type; root_name=root_name, distribute=distribute)
 
-        cells_per_dir = (160, 160, 160)
-        nruns = 40
-        params = (; nruns, cells_per_dir, parts_per_dir)
-        experiments(params; root_name=root_name, distribute=distribute)
+            cells_per_dir = (160, 160, 160)
+            nruns = 40
+            params = (; nruns, cells_per_dir, parts_per_dir)
+            experiments(params, experiment_type; root_name=root_name, distribute=distribute)
 
-        cells_per_dir = (80, 80, 80)
-        nruns = 80
-        params = (; nruns, cells_per_dir, parts_per_dir)
-        experiments(params; root_name=root_name, distribute=distribute)
+            cells_per_dir = (80, 80, 80)
+            nruns = 80
+            params = (; nruns, cells_per_dir, parts_per_dir)
+            experiments(params, experiment_type; root_name=root_name, distribute=distribute)
 
-        cells_per_dir = (40, 40, 40)
-        nruns = 160
-        params = (; nruns, cells_per_dir, parts_per_dir)
-        experiments(params; root_name=root_name, distribute=distribute)
+            cells_per_dir = (40, 40, 40)
+            nruns = 160
+            params = (; nruns, cells_per_dir, parts_per_dir)
+            experiments(params, experiment_type; root_name=root_name, distribute=distribute)
 
-        cells_per_dir = (20, 20, 20)
-        nruns = 320
-        params = (; nruns, cells_per_dir, parts_per_dir)
-        experiments(params; root_name=root_name, distribute=distribute)
+            cells_per_dir = (20, 20, 20)
+            nruns = 320
+            params = (; nruns, cells_per_dir, parts_per_dir)
+            experiments(params, experiment_type; root_name=root_name, distribute=distribute)
+        end
+    elseif experiment_type == "weak"
+        with_mpi() do distribute
+            cells_per_dir = (80, 80, 80) .* parts_per_dir
+            nruns = 1
+            params = (; nruns, cells_per_dir, parts_per_dir)
+            experiments(params, experiment_type; root_name=root_name, distribute=distribute)
+        end
+    else
+        with_mpi() do distribute
+            cells_per_dir = (80, 80, 80)
+            nruns = 1
+            params = (; nruns, cells_per_dir, parts_per_dir)
+            experiments(params, experiment_type; root_name=root_name, distribute=distribute)
+        end
     end
 end
