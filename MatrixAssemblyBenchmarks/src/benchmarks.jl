@@ -495,14 +495,14 @@ function experiments_set(parts_per_dir, experiment_type; root_name="")
     elseif experiment_type == "weak"
         with_mpi() do distribute
             cells_per_dir = (80, 80, 80) .* parts_per_dir
-            nruns = 1
+            nruns = 80
             params = (; nruns, cells_per_dir, parts_per_dir)
             experiments(params, experiment_type; root_name=root_name, distribute=distribute)
         end
     else
         with_mpi() do distribute
             cells_per_dir = (80, 80, 80)
-            nruns = 1
+            nruns = 80
             params = (; nruns, cells_per_dir, parts_per_dir)
             experiments(params, experiment_type; root_name=root_name, distribute=distribute)
         end
