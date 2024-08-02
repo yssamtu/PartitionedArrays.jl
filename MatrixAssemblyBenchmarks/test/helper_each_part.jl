@@ -51,19 +51,24 @@ function get_execution_time(path)
     function get_maximum(v)
         np = length(v)
         nruns = length(v[1])
-        while np > 1
-            left = 1
-            right = np
-            while left < right
+        # while np > 1
+            # left = 1
+            # right = np
+            # while left < right
+            for j in 2:np
                 for i in 1:nruns
-                    if sum(v[right][i]) > sum(v[left][i])
-                        v[left][i] = v[right][i]
-                    end
+                    v[1][i] += v[j][i]
+                    # if sum(v[right][i]) > sum(v[left][i])
+                    #     v[left][i] = v[right][i]
+                    # end
                 end
-                left += 1
-                right -= 1
+                # left += 1
+                # right -= 1
             end
-            np = (np + 1) >> 1
+            # np = (np + 1) >> 1
+        # end
+        for i in 1:nruns
+            v[1][i] /= np
         end
         v[1]
     end
@@ -89,19 +94,24 @@ function get_execution_time(path, buildmat, rebuildmat)
     function get_maximum(v)
         np = length(v)
         nruns = length(v[1])
-        while np > 1
-            left = 1
-            right = np
-            while left < right
+        # while np > 1
+        #     left = 1
+        #     right = np
+            # while left < right
+            for j in 2:np
                 for i in 1:nruns
-                    if sum(v[right][i]) > sum(v[left][i])
-                        v[left][i] = v[right][i]
-                    end
+                    v[1][i] += v[j][i]
+                    # if sum(v[right][i]) > sum(v[left][i])
+                    #     v[left][i] = v[right][i]
+                    # end
                 end
-                left += 1
-                right -= 1
+                # left += 1
+                # right -= 1
             end
-            np = (np + 1) >> 1
+            # np = (np + 1) >> 1
+        # end
+        for i in 1:nruns
+            v[1][i] /= np
         end
         v[1]
     end
@@ -344,7 +354,7 @@ function merge_file(result_case, new_case)
                 result_summary[f][time] = new_data
                 summary_updated = true
                 book_updated = true
-            elseif new_data < result_summary[f][time]
+            elseif sum(new_data) < sum(result_summary[f][time])
                 result_summary[f][time] = new_data
                 k = "$(time[1:end-5])mat"
                 result_book[k] = new_book[k]
