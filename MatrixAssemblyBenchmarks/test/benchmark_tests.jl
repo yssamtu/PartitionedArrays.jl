@@ -1,12 +1,90 @@
 import MatrixAssemblyBenchmarks as mb
-dir_name = abspath("test")
+dir_name = abspath("each_part")
 nexec = 1
 mb.run_experiments_sets(; dir_name=dir_name, nexec=nexec)
 # nodes = Int[]
 # cores = Int[]
-# cells_per_dirss = Vector{NTuple{3, Int}}[]
-# nrunss = Vector{Int}[]
-# methods = Vector{String}[]
+# cells_per_dirss = NTuple{3, Int}[]
+# nrunss = Int[]
+# methods = String[]
+
+# append!(nodes, 18)
+# append!(cores, 1)
+# push!(cells_per_dirss, (320, 320, 320))
+# append!(nrunss, 20)
+# push!(methods, "assemble_matrix_no_compressed_snd_and_with_int_vector_cache")
+
+# append!(nodes, 18)
+# append!(cores, 1)
+# push!(cells_per_dirss, (320, 320, 320))
+# append!(nrunss, 20)
+# push!(methods, "assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache")
+
+# append!(nodes, 18)
+# append!(cores, 1)
+# push!(cells_per_dirss, (320, 320, 320))
+# append!(nrunss, 20)
+# push!(methods, "assemble_matrix_no_compressed_snd_and_with_auto_cache")
+
+# append!(nodes, 18)
+# append!(cores, 1)
+# push!(cells_per_dirss, (320, 320, 320))
+# append!(nrunss, 20)
+# push!(methods, "assemble_matrix_with_compressed_snd_and_with_int_vector_cache")
+
+# append!(nodes, 18)
+# append!(cores, 1)
+# push!(cells_per_dirss, (320, 320, 320))
+# append!(nrunss, 20)
+# push!(methods, "assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache")
+
+# append!(nodes, 18)
+# append!(cores, 1)
+# push!(cells_per_dirss, (320, 320, 320))
+# append!(nrunss, 20)
+# push!(methods, "assemble_matrix_with_compressed_snd_and_with_auto_cache")
+
+# append!(nodes, 27)
+# append!(cores, 1)
+# push!(cells_per_dirss, (320, 320, 320))
+# append!(nrunss, 20)
+# push!(methods, "assemble_matrix_no_compressed_snd_and_with_int_vector_cache")
+
+# append!(nodes, 27)
+# append!(cores, 1)
+# push!(cells_per_dirss, (320, 320, 320))
+# append!(nrunss, 20)
+# push!(methods, "assemble_matrix_no_compressed_snd_and_with_tuple_vector_cache")
+
+# append!(nodes, 27)
+# append!(cores, 1)
+# push!(cells_per_dirss, (320, 320, 320))
+# append!(nrunss, 20)
+# push!(methods, "assemble_matrix_no_compressed_snd_and_with_auto_cache")
+
+# append!(nodes, 27)
+# append!(cores, 1)
+# push!(cells_per_dirss, (320, 320, 320))
+# append!(nrunss, 20)
+# push!(methods, "assemble_matrix_with_compressed_snd_and_with_int_vector_cache")
+
+# append!(nodes, 27)
+# append!(cores, 1)
+# push!(cells_per_dirss, (320, 320, 320))
+# append!(nrunss, 20)
+# push!(methods, "assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache")
+
+# append!(nodes, 27)
+# append!(cores, 1)
+# push!(cells_per_dirss, (320, 320, 320))
+# append!(nrunss, 20)
+# push!(methods, "assemble_matrix_with_compressed_snd_and_with_auto_cache")
+
+# append!(nodes, 18)
+# append!(cores, 16)
+# push!(cells_per_dirss, (80, 80, 80))
+# append!(nrunss, 80)
+# push!(methods, "petsc_coo")
 
 # append!(nodes, 18)
 # append!(cores, 16)
@@ -16,14 +94,14 @@ mb.run_experiments_sets(; dir_name=dir_name, nexec=nexec)
 
 # append!(nodes, 27)
 # append!(cores, 12)
-# push!(cells_per_dirss, (160, 160, 160))
-# append!(nrunss, 40)
-# push!(methods, "assemble_matrix_with_compressed_snd_and_with_int_vector_cache")
+# push!(cells_per_dirss, (80, 80, 80))
+# append!(nrunss, 80)
+# push!(methods, "petsc_coo")
 
 # append!(nodes, 27)
 # append!(cores, 12)
-# push!(cells_per_dirss, (80, 80, 80))
-# append!(nrunss, 80)
+# push!(cells_per_dirss, (40, 40, 40))
+# append!(nrunss, 160)
 # push!(methods, "petsc_coo")
 
 # append!(nodes, 27)
@@ -31,36 +109,6 @@ mb.run_experiments_sets(; dir_name=dir_name, nexec=nexec)
 # push!(cells_per_dirss, (20, 20, 20))
 # append!(nrunss, 320)
 # push!(methods, "petsc_coo")
-
-# append!(nodes, 27)
-# append!(cores, 16)
-# push!(cells_per_dirss, (160, 160, 160))
-# append!(nrunss, 40)
-# push!(methods, "assemble_matrix_with_compressed_snd_and_with_int_vector_cache")
-
-# append!(nodes, 27)
-# append!(cores, 16)
-# push!(cells_per_dirss, (160, 160, 160))
-# append!(nrunss, 40)
-# push!(methods, "assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache")
-
-# append!(nodes, 27)
-# append!(cores, 16)
-# push!(cells_per_dirss, (80, 80, 80))
-# append!(nrunss, 80)
-# push!(methods, "assemble_matrix_with_compressed_snd_and_with_int_vector_cache")
-
-# append!(nodes, 27)
-# append!(cores, 16)
-# push!(cells_per_dirss, (80, 80, 80))
-# append!(nrunss, 80)
-# push!(methods, "assemble_matrix_with_compressed_snd_and_with_tuple_vector_cache")
-
-# append!(nodes, 27)
-# append!(cores, 16)
-# push!(cells_per_dirss, (80, 80, 80))
-# append!(nrunss, 80)
-# push!(methods, "assemble_matrix_with_compressed_snd_and_with_auto_cache")
 
 # append!(nodes, 27)
 # append!(cores, 16)
@@ -80,18 +128,44 @@ mb.run_experiments_sets(; dir_name=dir_name, nexec=nexec)
 # append!(nrunss, 320)
 # push!(methods, "petsc_coo")
 
+# Base.exit_on_sigint(false)
+# tasks = []
+# @sync for (node, core) in zip(nodes, cores)
+#     try
+#         while length(tasks) >= 1
+#             for i in length(tasks):-1:1
+#                 if istaskdone(tasks[i])
+#                     deleteat!(tasks, i)
+#                 end
+#             end
+#             yield()
+#         end
+
+#         task = @async mb.run_experiments_set(node, core; dir_name=dir_name, nexec=nexec)
+#         push!(tasks, task)
+#     catch
+#         break
+#     end
+# end
+
+# Base.exit_on_sigint(false)
 # tasks = []
 # @sync for (node, core, cells_per_dir, nruns, method) in zip(nodes, cores, cells_per_dirss, nrunss, methods)
-#     while length(tasks) >= 20
-#         for i in length(tasks):-1:1
-#             if istaskdone(tasks[i])
-#                 deleteat!(tasks, i)
+#     try
+#         while length(tasks) >= 3
+#             for i in length(tasks):-1:1
+#                 if istaskdone(tasks[i])
+#                     deleteat!(tasks, i)
+#                 end
 #             end
+#             yield()
 #         end
-#         yield()
+
+#         task = @async mb.run_experiment(node, core, cells_per_dir, nruns, method; dir_name=dir_name, nexec=nexec)
+#         push!(tasks, task)
+#     catch
+#         break
 #     end
-#     task = @async mb.run_experiment(node, core, cells_per_dir, nruns, method; dir_name=dir_name, nexec=nexec)
-#     push!(tasks, task)
 # end
 # mb.merge_dir("/home/ppp23002/thesis/strong_scaling/(18,12)", "/home/ppp23002/thesis/test/result/(18,12)")
 # node=2
