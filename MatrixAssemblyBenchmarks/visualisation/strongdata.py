@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import Union
 
-from common import draw_legend
+from common import change_func_name, draw_legend
 from constants import (
     SPECIAL_LINE_COLOUR,
     SPECIAL_LINE_WIDTH,
@@ -65,7 +65,7 @@ class StrongData:
                 part = tuple(map(int, part_str.strip("()").split(",")))
                 with open(join(full_path, file_name)) as f:
                     dicts[size][np].append(
-                        {**load(f), "node_core": node_core, "part": part}
+                        {**change_func_name(load(f)), "node_core": node_core, "part": part}
                     )
         data = convert_to_dict(dicts)
         for v in data.values():
@@ -312,7 +312,7 @@ class StrongData:
                             *(point[f][time] for point in self.data[data_size][np]),
                         )
                     ax.plot(
-                        x, y, color=colors[i], marker=marker, label=f"{f}_{data_size}"
+                        x, y, color=colors[i], marker=marker, label=f"{f}_{data_size}"#, alpha=0.5
                     )
             ax.set_xscale("log")
             ax.set_yscale("log")
@@ -373,13 +373,12 @@ class StrongData:
             func = scatters
         if isinstance(times, tuple):
             fig, axs = plt.subplots(
-                1, 2, figsize=(figsize[0] * 2, figsize[1]), sharey=True
+                1, 2, figsize=(figsize[0] * 2 * 1.1, figsize[1]), sharey=True
             )
             ylabel_mask = (True, False)
             if draw_limit and len(data_sizes) == 1:
                 if save_file_name is None or not separate_legend:
                     for ax, time, show_ylabel in zip(axs, times, ylabel_mask):
-                        func(ax, time, show_ylabel)
                         ax.axvline(
                             x=pow(data_sizes[0] - 1, 3) / 25000,
                             color=SPECIAL_LINE_COLOUR,
@@ -387,10 +386,10 @@ class StrongData:
                             linestyle=SPECIAL_LINE_STYLE,
                             label="25K rows/rank",
                         )
+                        func(ax, time, show_ylabel)
                         ax.legend()
                 else:
                     for ax, time, show_ylabel in zip(axs, times, ylabel_mask):
-                        func(ax, time, show_ylabel)
                         ax.axvline(
                             x=pow(data_sizes[0] - 1, 3) / 25000,
                             color=SPECIAL_LINE_COLOUR,
@@ -398,6 +397,7 @@ class StrongData:
                             linestyle=SPECIAL_LINE_STYLE,
                             label="25K rows/rank",
                         )
+                        func(ax, time, show_ylabel)
             else:
                 if save_file_name is None or not separate_legend:
                     for ax, time, show_ylabel in zip(axs, times, ylabel_mask):
@@ -414,7 +414,6 @@ class StrongData:
                 plt.savefig(f"{save_file_name}.pdf", bbox_inches="tight")
         else:
             fig, ax = plt.subplots(figsize=figsize)
-            func(ax, times)
             if draw_limit and len(data_sizes) == 1:
                 ax.axvline(
                     x=pow(data_sizes[0] - 1, 3) / 25000,
@@ -423,6 +422,7 @@ class StrongData:
                     linestyle=SPECIAL_LINE_STYLE,
                     label="25K rows/rank",
                 )
+            func(ax, times)
             if save_file_name is None:
                 ax.legend()
                 plt.show()
@@ -498,7 +498,7 @@ class StrongData:
                 ax.set_ylabel("Wall-clock time (s)")
 
         if isinstance(times, tuple):
-            figsize = (figsize[0] * 2, figsize[1])
+            figsize = (figsize[0] * 2 * 1.1, figsize[1])
             if save_file_name is None or not separate_legend:
                 for f in fs:
                     fig, axs = plt.subplots(1, 2, figsize=figsize)
@@ -595,7 +595,7 @@ class StrongData:
         if isinstance(times, tuple):
             for data_size in data_sizes:
                 fig, axs = plt.subplots(
-                    1, 2, figsize=(figsize[0] * 2, figsize[1]), sharey=True
+                    1, 2, figsize=(figsize[0] * 2 * 1.1, figsize[1]), sharey=True
                 )
                 if save_file_name is None or not separate_legend:
                     for i, (ax, time) in enumerate(zip(axs, times)):
@@ -684,7 +684,7 @@ class StrongData:
         if isinstance(times, tuple):
             for data_size in data_sizes:
                 fig, axs = plt.subplots(
-                    1, 2, figsize=(figsize[0] * 2, figsize[1]), sharey=True
+                    1, 2, figsize=(figsize[0] * 2 * 1.1, figsize[1]), sharey=True
                 )
                 if save_file_name is None or not separate_legend:
                     for i, (ax, time) in enumerate(zip(axs, times)):

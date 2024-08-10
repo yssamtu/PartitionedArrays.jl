@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import Union
 
-from common import draw_legend
+from common import change_func_name, draw_legend
 from constants import (
     SPECIAL_LINE_COLOUR,
     SPECIAL_LINE_WIDTH,
@@ -57,7 +57,7 @@ class WeakData:
                 with open(join(full_path, file_name)) as f:
                     dicts[np].append(
                         {
-                            **load(f),
+                            **change_func_name(load(f)),
                             "node_core": node_core,
                             "part": part,
                             "data_size": size,
@@ -308,7 +308,7 @@ class WeakData:
             func = scatters
         if isinstance(times, tuple):
             fig, axs = plt.subplots(
-                1, 2, figsize=(figsize[0] * 2, figsize[1]), sharey=True
+                1, 2, figsize=(figsize[0] * 2 * 1.1, figsize[1]), sharey=True
             )
             if save_file_name is None or not separate_legend:
                 for i, (ax, time) in enumerate(zip(axs, times)):
@@ -395,7 +395,7 @@ class WeakData:
         MARKER = "x"
         if isinstance(times, tuple):
             fig, axs = plt.subplots(
-                1, 2, figsize=(figsize[0] * 2, figsize[1]), sharey=True
+                1, 2, figsize=(figsize[0] * 2 * 1.1, figsize[1]), sharey=True
             )
             if save_file_name is None or not separate_legend:
                 for i, (ax, time) in enumerate(zip(axs, times)):
@@ -482,7 +482,7 @@ class WeakData:
         MARKER = "x"
         if isinstance(times, tuple):
             fig, axs = plt.subplots(
-                1, 2, figsize=(figsize[0] * 2, figsize[1]), sharey=True
+                1, 2, figsize=(figsize[0] * 2 * 1.1, figsize[1]), sharey=True
             )
             if save_file_name is None or not separate_legend:
                 for i, (ax, time) in enumerate(zip(axs, times)):
