@@ -8,5 +8,3 @@ plt.rcParams.update(
         # "text.latex.preamble": r"\usepackage{mathptmx}",
     }
 )
-
-folder = "../thesis_result"

@@ -7,9 +7,18 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import Union
 
+from common import draw_legend
+from constants import (
+    SPECIAL_LINE_COLOUR,
+    SPECIAL_LINE_WIDTH,
+    SPECIAL_LINE_STYLE,
+    FOLDER,
+)
+
 
 class StrongData:
-    def __init__(self, data):
+    def __init__(self, computer: str = "das5"):
+        data = self.__load_strong_scaling_data(computer)
         one_case = next(iter(next(iter(next(iter(data.values())).values()))))
         self.data = data
         self.data_sizes = tuple(data.keys())
@@ -21,6 +30,48 @@ class StrongData:
         )
         self.__speedup = self.get_speedup()
         self.__efficiency = self.get_efficiency()
+
+    def __load_strong_scaling_data(self, computer: str):
+        """__load_strong_scaling_data(computer: str)"""
+
+        def convert_to_dict(d):
+            def f(d):
+                if isinstance(d, defaultdict):
+                    d = {k: convert_to_dict(v) for k, v in sorted(d.items())}
+                return d
+
+            if isinstance(d, defaultdict):
+                d = {k: f(v) for k, v in reversed(sorted(d.items()))}
+            return d
+
+        if computer == "das5":
+            folder = join(FOLDER, "strong_scaling")
+        else:
+            folder = join(FOLDER, "strong_scaling_old_snellius")
+        file_name = "summary.json"
+        dicts = defaultdict(lambda: defaultdict(list))
+        for nc in listdir(folder):
+            path = join(folder, nc)
+            if not isdir(path):
+                continue
+            node_core = tuple(map(int, nc.strip("()").split(",")))
+            np = int(prod(node_core))
+            for subpath in listdir(path):
+                full_path = join(path, subpath)
+                if not isdir(full_path):
+                    continue
+                size_str, part_str, _ = subpath.split("_")
+                size = int(size_str.strip("()").split(",")[0])
+                part = tuple(map(int, part_str.strip("()").split(",")))
+                with open(join(full_path, file_name)) as f:
+                    dicts[size][np].append(
+                        {**load(f), "node_core": node_core, "part": part}
+                    )
+        data = convert_to_dict(dicts)
+        for v in data.values():
+            for k, v_1 in v.items():
+                v[k] = tuple(v_1)
+        return data
 
     def get_data(
         self,
@@ -252,7 +303,7 @@ class StrongData:
         """draw_data(draw_type: str, data_sizes: Union[int, tuple[int, ...], list[int]], nps: Union[int, tuple[int, ...], list[int]], fs: Union[str, tuple[str, ...], list[str]], times: Union[str, tuple[str, str], list[str]], draw_limit: bool, figsize: tuple[int, int], save_file_name: str, separate_legend: bool)"""
 
         def plots(ax, time, show_ylabel=True):
-            for data_size, marker in zip(data_sizes, markers):
+            for data_size, marker in zip(data_sizes, MARKERS):
                 for i, f in enumerate(fs):
                     y = [float("inf")] * len(nps)
                     for j, np in enumerate(nps):
@@ -270,7 +321,7 @@ class StrongData:
                 ax.set_ylabel("Wall-clock time (s)")
 
         def scatters(ax, time, show_ylabel=True):
-            for data_size, marker in zip(data_sizes, markers):
+            for data_size, marker in zip(data_sizes, MARKERS):
                 for i, f in enumerate(fs):
                     y = []
                     for j, np in enumerate(nps):
@@ -285,7 +336,7 @@ class StrongData:
                 ax.set_ylabel("Wall-clock time (s)")
 
         colors = sns.color_palette("Set1", 9, 0.9)
-        markers = ("x", "+", "v", ".", "*")
+        MARKERS = ("x", "+", "v", ".", "*")
         if isinstance(data_sizes, int):
             data_sizes = (data_sizes,)
         elif data_sizes is None or not data_sizes:
@@ -331,8 +382,9 @@ class StrongData:
                         func(ax, time, show_ylabel)
                         ax.axvline(
                             x=pow(data_sizes[0] - 1, 3) / 25000,
-                            color="#AFA938",
-                            linewidth=2,
+                            color=SPECIAL_LINE_COLOUR,
+                            linewidth=SPECIAL_LINE_WIDTH,
+                            linestyle=SPECIAL_LINE_STYLE,
                             label="25K rows/rank",
                         )
                         ax.legend()
@@ -341,8 +393,9 @@ class StrongData:
                         func(ax, time, show_ylabel)
                         ax.axvline(
                             x=pow(data_sizes[0] - 1, 3) / 25000,
-                            color="#AFA938",
-                            linewidth=2,
+                            color=SPECIAL_LINE_COLOUR,
+                            linewidth=SPECIAL_LINE_WIDTH,
+                            linestyle=SPECIAL_LINE_STYLE,
                             label="25K rows/rank",
                         )
             else:
@@ -353,38 +406,32 @@ class StrongData:
                 else:
                     for ax, time, show_ylabel in zip(axs, times, ylabel_mask):
                         func(ax, time, show_ylabel)
+            if save_file_name is None:
+                plt.show()
+            else:
+                if separate_legend:
+                    draw_legend(axs[0], figsize, save_file_name)
+                plt.savefig(f"{save_file_name}.pdf")
         else:
             fig, ax = plt.subplots(figsize=figsize)
             func(ax, times)
             if draw_limit and len(data_sizes) == 1:
                 ax.axvline(
                     x=pow(data_sizes[0] - 1, 3) / 25000,
-                    color="#AFA938",
-                    linewidth=2,
+                    color=SPECIAL_LINE_COLOUR,
+                    linewidth=SPECIAL_LINE_WIDTH,
+                    linestyle=SPECIAL_LINE_STYLE,
                     label="25K rows/rank",
                 )
-            if save_file_name is None or not separate_legend:
+            if save_file_name is None:
                 ax.legend()
-        if save_file_name is None:
-            plt.show()
-        else:
-            if separate_legend:
-                fig_legend, ax_legend = plt.subplots(
-                    figsize=(figsize[0] * 0.5, figsize[1] * 0.5)
-                )
-                handles, labels = ax.get_legend_handles_labels()
-                legend = fig_legend.legend(
-                    handles, labels, loc="center", ncol=2, frameon=False
-                )
-                ax_legend.axis("off")
-                fig_legend.canvas.draw()
-                bbox = legend.get_window_extent().transformed(
-                    fig_legend.dpi_scale_trans.inverted()
-                )
-                fig_legend.set_size_inches(bbox.width, bbox.height)
-                fig_legend.savefig(f"{save_file_name}_legend.pdf")
-                plt.close(fig_legend)
-            plt.savefig(f"{save_file_name}.pdf")
+                plt.show()
+            else:
+                if separate_legend:
+                    draw_legend(ax, figsize, save_file_name)
+                else:
+                    ax.legend()
+                plt.savefig(f"{save_file_name}.pdf")
         plt.close(fig)
 
     def draw_complexity(
@@ -394,8 +441,9 @@ class StrongData:
         times: Union[str, tuple[str, str], list[str]] = None,
         figsize: tuple[int, int] = (6, 6),
         save_file_name: str = None,
+        separate_legend: bool = True,
     ):
-        """draw_complexity(nps: Union[int, tuple[int, ...], list[int]], fs: Union[str, tuple[str, ...], list[str]], times: Union[str, tuple[str, str], list[str]], figsize: tuple[int, int], save_file_name: str)"""
+        """draw_complexity(nps: Union[int, tuple[int, ...], list[int]], fs: Union[str, tuple[str, ...], list[str]], times: Union[str, tuple[str, str], list[str]], figsize: tuple[int, int], save_file_name: str, separate_legend: bool)"""
         if isinstance(nps, int):
             nps = (nps,)
         elif nps is None or not nps:
@@ -420,7 +468,7 @@ class StrongData:
                 "font.serif": plt.rcParams["font.serif"],
             },
         )
-        marker = "x"
+        MARKER = "x"
         x = tuple(k**3 for k in self.data.keys())
 
         def plot(ax, f, time, show_y_label=True):
@@ -431,16 +479,16 @@ class StrongData:
                 ax.plot(
                     x,
                     tuple(i / y[-1] * y[-1] for i in y),
-                    marker=marker,
+                    marker=MARKER,
                     label=f"{f}_{np}",
                 )
             ax.plot(
-                x, tuple((i / x[-1]) * y[-1] for i in x), marker=marker, label=r"$O(n)$"
+                x, tuple((i / x[-1]) * y[-1] for i in x), marker=MARKER, label=r"$O(n)$"
             )
             ax.plot(
                 x,
                 tuple((i / x[-1]) ** 0.5 * y[-1] for i in x),
-                marker=marker,
+                marker=MARKER,
                 label=r"$O(\sqrt n)$",
             )
             ax.set_xscale("log")
@@ -448,26 +496,38 @@ class StrongData:
             ax.set_xlabel("Problem size")
             if show_y_label:
                 ax.set_ylabel("Wall-clock time (s)")
-            ax.legend()
 
         if isinstance(times, tuple):
             figsize = (figsize[0] * 2, figsize[1])
-            for f in fs:
-                fig, axs = plt.subplots(1, 2, figsize=figsize)
-                plot(axs[0], f, times[0], True)
-                plot(axs[1], f, times[1], False)
-                if save_file_name is None:
-                    plt.show()
-                else:
+            if save_file_name is None or not separate_legend:
+                for f in fs:
+                    fig, axs = plt.subplots(1, 2, figsize=figsize)
+                    for i, (ax, time) in enumerate(zip(axs, times)):
+                        plot(ax, f, time, i == 0)
+                        ax.legend()
+                    if save_file_name is None:
+                        plt.show()
+                    else:
+                        plt.savefig(f"{save_file_name}_{f}.pdf")
+                    plt.close(fig)
+            else:
+                for f in fs:
+                    fig, axs = plt.subplots(1, 2, figsize=figsize)
+                    for i, (ax, time) in enumerate(zip(axs, times)):
+                        plot(ax, f, time, i == 0)
+                    draw_legend(axs[0], figsize, f"{save_file_name}_{f}")
                     plt.savefig(f"{save_file_name}_{f}.pdf")
-                plt.close(fig)
+                    plt.close(fig)
         else:
             for f in fs:
                 fig, ax = plt.subplots(figsize=figsize)
                 plot(ax, f, times)
                 if save_file_name is None:
+                    ax.legend()
                     plt.show()
                 else:
+                    if separate_legend:
+                        draw_legend(ax, figsize, f"{save_file_name}_{f}")
                     plt.savefig(f"{save_file_name}_{f}.pdf")
                 plt.close(fig)
 
@@ -479,21 +539,28 @@ class StrongData:
         times: Union[str, tuple[str, str], list[str]] = None,
         figsize: tuple[int, int] = (8, 8),
         save_file_name: str = None,
+        separate_legend: bool = True,
     ):
-        """draw_speedup(data_sizes: Union[int, tuple[int, ...], list[int]], nps: Union[int, tuple[int, ...], list[int]], fs: Union[str, tuple[str, ...], list[str]], times: Union[str, tuple[str, str], list[str]], figsize: tuple[int, int], save_file_name: str)"""
+        """draw_speedup(data_sizes: Union[int, tuple[int, ...], list[int]], nps: Union[int, tuple[int, ...], list[int]], fs: Union[str, tuple[str, ...], list[str]], times: Union[str, tuple[str, str], list[str]], figsize: tuple[int, int], save_file_name: str, separate_legend: bool)"""
 
         def plot(data_size, ax, time, show_ylabel=True):
             y = nps
-            ax.plot(nps, y, label="theoretical", linestyle="-.")
+            ax.plot(
+                nps,
+                y,
+                color=SPECIAL_LINE_COLOUR,
+                linewidth=SPECIAL_LINE_WIDTH,
+                label="theoretical",
+                linestyle=SPECIAL_LINE_STYLE,
+            )
             for f in fs:
                 y = speedup[data_size][f][time]
-                ax.plot(nps, y, marker=marker, label=f"{f}_{data_size}")
+                ax.plot(nps, y, marker=MARKER, label=f"{f}_{data_size}")
             ax.set_xscale("log")
             ax.set_yscale("log")
             ax.set_xlabel(r"CPU cores")
             if show_ylabel:
                 ax.set_ylabel(r"Speed-up")
-            ax.legend()
 
         if isinstance(data_sizes, int):
             data_sizes = (data_sizes,)
@@ -524,17 +591,24 @@ class StrongData:
                 "font.serif": plt.rcParams["font.serif"],
             },
         )
-        marker = "x"
+        MARKER = "x"
         if isinstance(times, tuple):
             for data_size in data_sizes:
                 fig, axs = plt.subplots(
                     1, 2, figsize=(figsize[0] * 2, figsize[1]), sharey=True
                 )
-                plot(data_size, axs[0], times[0], True)
-                plot(data_size, axs[1], times[1], False)
+                if save_file_name is None or not separate_legend:
+                    for i, (ax, time) in enumerate(zip(axs, times)):
+                        plot(data_size, ax, time, i == 0)
+                        ax.legend()
+                else:
+                    for i, (ax, time) in enumerate(zip(axs, times)):
+                        plot(data_size, ax, time, i == 0)
                 if save_file_name is None:
                     plt.show()
                 else:
+                    if separate_legend:
+                        draw_legend(axs[0], figsize, save_file_name)
                     plt.savefig(f"{save_file_name}.pdf")
                 plt.close(fig)
         else:
@@ -542,8 +616,13 @@ class StrongData:
                 fig, ax = plt.subplots(figsize=figsize)
                 plot(data_size, ax, times)
                 if save_file_name is None:
+                    ax.legend()
                     plt.show()
                 else:
+                    if separate_legend:
+                        draw_legend(ax, figsize, save_file_name)
+                    else:
+                        ax.legend()
                     plt.savefig(f"{save_file_name}.pdf")
                 plt.close(fig)
 
@@ -555,20 +634,20 @@ class StrongData:
         times: Union[str, tuple[str, str], list[str]] = None,
         figsize: tuple[int, int] = (8, 8),
         save_file_name: str = None,
+        separate_legend: bool = True,
     ):
-        """draw_efficiency(data_sizes: Union[int, tuple[int, ...], list[int]], nps: Union[int, tuple[int, ...], list[int]], fs: Union[str, tuple[str, ...], list[str]], times: Union[str, tuple[str, str], list[str]], figsize: tuple[int, int], save_file_name: str)"""
+        """draw_efficiency(data_sizes: Union[int, tuple[int, ...], list[int]], nps: Union[int, tuple[int, ...], list[int]], fs: Union[str, tuple[str, ...], list[str]], times: Union[str, tuple[str, str], list[str]], figsize: tuple[int, int], save_file_name: str, separate_legend: bool)"""
 
         def plot(data_size, ax, time, show_ylabel=True):
             y = [1.0] * len(nps)
-            ax.plot(nps, y, label="theoretical", linestyle="-.")
+            ax.plot(nps, y, label="theoretical", linestyle=SPECIAL_LINE_STYLE)
             for f in fs:
                 y = efficiency[data_size][f][time]
-                ax.plot(nps, y, marker=marker, label=f"{f}_{data_size}")
+                ax.plot(nps, y, marker=MARKER, label=f"{f}_{data_size}")
             ax.set_xscale("log")
             ax.set_xlabel("CPU cores")
             if show_ylabel:
                 ax.set_ylabel("Efficiency")
-            ax.legend()
 
         if isinstance(data_sizes, int):
             data_sizes = (data_sizes,)
@@ -601,17 +680,24 @@ class StrongData:
                 "font.serif": plt.rcParams["font.serif"],
             },
         )
-        marker = "x"
+        MARKER = "x"
         if isinstance(times, tuple):
             for data_size in data_sizes:
                 fig, axs = plt.subplots(
                     1, 2, figsize=(figsize[0] * 2, figsize[1]), sharey=True
                 )
-                plot(data_size, axs[0], times[0], True)
-                plot(data_size, axs[1], times[1], False)
+                if save_file_name is None or not separate_legend:
+                    for i, (ax, time) in enumerate(zip(axs, times)):
+                        plot(data_size, ax, time, i == 0)
+                        ax.legend()
+                else:
+                    for i, (ax, time) in enumerate(zip(axs, times)):
+                        plot(data_size, ax, time, i == 0)
                 if save_file_name is None:
                     plt.show()
                 else:
+                    if separate_legend:
+                        draw_legend(axs[0], figsize, save_file_name)
                     plt.savefig(f"{save_file_name}.pdf")
                 plt.close(fig)
         else:
@@ -619,50 +705,12 @@ class StrongData:
                 fig, ax = plt.subplots(figsize=figsize)
                 plot(data_size, ax, times)
                 if save_file_name is None:
+                    ax.legend()
                     plt.show()
                 else:
+                    if separate_legend:
+                        draw_legend(ax, figsize, save_file_name)
+                    else:
+                        ax.legend()
                     plt.savefig(f"{save_file_name}.pdf")
                 plt.close(fig)
-
-
-def load_strong_scaling_data(folder: str, computer: str = "das5"):
-    """load_strong_scaling_data(folder: str)"""
-
-    def convert_to_dict(d):
-        def f(d):
-            if isinstance(d, defaultdict):
-                d = {k: convert_to_dict(v) for k, v in sorted(d.items())}
-            return d
-
-        if isinstance(d, defaultdict):
-            d = {k: f(v) for k, v in reversed(sorted(d.items()))}
-        return d
-
-    if computer == "das5":
-        folder = join(folder, "strong_scaling")
-    else:
-        folder = join(folder, "strong_scaling_old_snellius")
-    file_name = "summary.json"
-    dicts = defaultdict(lambda: defaultdict(list))
-    for nc in listdir(folder):
-        path = join(folder, nc)
-        if not isdir(path):
-            continue
-        node_core = tuple(map(int, nc.strip("()").split(",")))
-        np = int(prod(node_core))
-        for subpath in listdir(path):
-            full_path = join(path, subpath)
-            if not isdir(full_path):
-                continue
-            size_str, part_str, _ = subpath.split("_")
-            size = int(size_str.strip("()").split(",")[0])
-            part = tuple(map(int, part_str.strip("()").split(",")))
-            with open(join(full_path, file_name)) as f:
-                dicts[size][np].append(
-                    {**load(f), "node_core": node_core, "part": part}
-                )
-    data = convert_to_dict(dicts)
-    for v in data.values():
-        for k, v_1 in v.items():
-            v[k] = tuple(v_1)
-    return StrongData(data)

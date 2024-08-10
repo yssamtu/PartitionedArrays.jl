@@ -7,9 +7,18 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import Union
 
+from common import draw_legend
+from constants import (
+    SPECIAL_LINE_COLOUR,
+    SPECIAL_LINE_WIDTH,
+    SPECIAL_LINE_STYLE,
+    FOLDER,
+)
+
 
 class WeakData:
-    def __init__(self, data):
+    def __init__(self):
+        data = self.__load_weak_scaling_data()
         one_case = next(iter(next(iter(data.values()))))
         self.data = data
         self.nps = tuple(data.keys())
@@ -20,6 +29,44 @@ class WeakData:
         )
         self.__speedup = self.get_speedup()
         self.__efficiency = self.get_efficiency()
+
+    def __load_weak_scaling_data(self):
+        """load_weak_scaling_data()"""
+
+        def convert_to_dict(d):
+            if isinstance(d, defaultdict):
+                d = {k: convert_to_dict(v) for k, v in sorted(d.items())}
+            return d
+
+        folder = join(FOLDER, "weak_scaling")
+        file_name = "summary.json"
+        dicts = defaultdict(list)
+        for nc in listdir(folder):
+            path = join(folder, nc)
+            if not isdir(path):
+                continue
+            node_core = tuple(map(int, nc.strip("()").split(",")))
+            np = int(prod(node_core))
+            for subpath in listdir(path):
+                full_path = join(path, subpath)
+                if not isdir(full_path):
+                    continue
+                size_str, part_str, _ = subpath.split("_")
+                size = tuple(map(int, size_str.strip("()").split(",")))
+                part = tuple(map(int, part_str.strip("()").split(",")))
+                with open(join(full_path, file_name)) as f:
+                    dicts[np].append(
+                        {
+                            **load(f),
+                            "node_core": node_core,
+                            "part": part,
+                            "data_size": size,
+                        }
+                    )
+        data = convert_to_dict(dicts)
+        for k, v in data.items():
+            data[k] = tuple(v)
+        return data
 
     def get_data(
         self,
@@ -196,8 +243,9 @@ class WeakData:
         times: Union[str, tuple[str, str], list[str]] = None,
         figsize: tuple[int, int] = (10, 10),
         save_file_name: str = None,
+        separate_legend: bool = True,
     ):
-        """draw_data(draw_type: str, nps: Union[int, tuple[int, ...], list[int]], fs: Union[str, tuple[str, ...], list[str]], times: Union[str, tuple[str, str], list[str]], figsize: tuple[int, int], save_file_name: str)"""
+        """draw_data(draw_type: str, nps: Union[int, tuple[int, ...], list[int]], fs: Union[str, tuple[str, ...], list[str]], times: Union[str, tuple[str, str], list[str]], figsize: tuple[int, int], save_file_name: str, separate_legend: bool)"""
 
         def plots(ax, time, show_ylabel=True):
             for i, f in enumerate(fs):
@@ -207,29 +255,27 @@ class WeakData:
                         y[j],
                         *(point[f][time] for point in self.data[np]),
                     )
-                ax.plot(x, y, color=colors[i], marker=marker, label=f)
+                ax.plot(x, y, color=colors[i], marker=MARKER, label=f)
             ax.set_xscale("log")
             ax.set_yscale("log")
             ax.set_xlabel("CPU cores")
             if show_ylabel:
                 ax.set_ylabel("Wall-clock time (s)")
-            ax.legend()
 
         def scatters(ax, time, show_ylabel=True):
             for i, f in enumerate(fs):
                 y = []
                 for j, np in enumerate(nps):
                     y.extend((point[f][time] for point in self.data[np]))
-                ax.scatter(x, y, color=colors[i], marker=marker, label=f)
+                ax.scatter(x, y, color=colors[i], marker=MARKER, label=f)
             ax.set_xscale("log")
             ax.set_yscale("log")
             ax.set_xlabel("CPU cores")
             if show_ylabel:
                 ax.set_ylabel("Wall-clock time (s)")
-            ax.legend()
 
         colors = sns.color_palette("Set1", 9, 0.9)
-        marker = "x"
+        MARKER = "x"
         if isinstance(nps, int):
             nps = (nps,)
         elif nps is None or not nps:
@@ -264,15 +310,31 @@ class WeakData:
             fig, axs = plt.subplots(
                 1, 2, figsize=(figsize[0] * 2, figsize[1]), sharey=True
             )
-            func(axs[0], times[0], True)
-            func(axs[1], times[1], False)
+            if save_file_name is None or not separate_legend:
+                for i, (ax, time) in enumerate(zip(axs, times)):
+                    func(ax, time, i == 0)
+                    ax.legend()
+            else:
+                for i, (ax, time) in enumerate(zip(axs, times)):
+                    func(ax, time, i == 0)
+            if save_file_name is None:
+                plt.show()
+            else:
+                if separate_legend:
+                    draw_legend(axs[0], figsize, save_file_name)
+                plt.savefig(f"{save_file_name}.pdf")
         else:
             fig, ax = plt.subplots(figsize=figsize)
             func(ax, times)
-        if save_file_name is None:
-            plt.show()
-        else:
-            plt.savefig(f"{save_file_name}.pdf")
+            if save_file_name is None:
+                ax.legend()
+                plt.show()
+            else:
+                if separate_legend:
+                    draw_legend(ax, figsize, save_file_name)
+                else:
+                    ax.legend()
+                plt.savefig(f"{save_file_name}.pdf")
         plt.close(fig)
 
     def draw_speedup(
@@ -282,21 +344,28 @@ class WeakData:
         times: Union[str, tuple[str, str], list[str]] = None,
         figsize: tuple[int, int] = (8, 8),
         save_file_name: str = None,
+        separate_legend: bool = True,
     ):
-        """draw_speedup(nps: Union[int, tuple[int, ...], list[int]], fs: Union[str, tuple[str], list[str]], times: Union[str, tuple[str, str], list[str]], figsize: tuple[int, int], save_file_name: str)"""
+        """draw_speedup(nps: Union[int, tuple[int, ...], list[int]], fs: Union[str, tuple[str], list[str]], times: Union[str, tuple[str, str], list[str]], figsize: tuple[int, int], save_file_name: str, separate_legend: bool)"""
 
         def plot(ax, time, show_ylabel=True):
             y = nps
-            ax.plot(nps, y, color="#AFA938", label="theoretical", linestyle="-.")
+            ax.plot(
+                nps,
+                y,
+                color=SPECIAL_LINE_COLOUR,
+                linewidth=SPECIAL_LINE_WIDTH,
+                label="theoretical",
+                linestyle=SPECIAL_LINE_STYLE,
+            )
             for f in fs:
                 y = speedup[f][time]
-                ax.plot(nps, y, marker=marker, label=f"{f}")
+                ax.plot(nps, y, marker=MARKER, label=f"{f}")
             ax.set_xscale("log")
             ax.set_yscale("log")
             ax.set_xlabel("CPU cores")
             if show_ylabel:
                 ax.set_ylabel("Scaled speed-up")
-            ax.legend()
 
         if isinstance(nps, int):
             nps = (nps,)
@@ -323,24 +392,36 @@ class WeakData:
                 "font.serif": plt.rcParams["font.serif"],
             },
         )
-        marker = "x"
+        MARKER = "x"
         if isinstance(times, tuple):
             fig, axs = plt.subplots(
                 1, 2, figsize=(figsize[0] * 2, figsize[1]), sharey=True
             )
-            plot(axs[0], times[0], True)
-            plot(axs[1], times[1], False)
+            if save_file_name is None or not separate_legend:
+                for i, (ax, time) in enumerate(zip(axs, times)):
+                    plot(ax, time, i == 0)
+                    ax.legend()
+            else:
+                for i, (ax, time) in enumerate(zip(axs, times)):
+                    plot(ax, time, i == 0)
             if save_file_name is None:
                 plt.show()
             else:
+                if separate_legend:
+                    draw_legend(axs[0], figsize, save_file_name)
                 plt.savefig(f"{save_file_name}.pdf")
             plt.close(fig)
         else:
             fig, ax = plt.subplots(figsize=figsize)
             plot(ax, times)
             if save_file_name is None:
+                ax.legend()
                 plt.show()
             else:
+                if separate_legend:
+                    draw_legend(ax, figsize, save_file_name)
+                else:
+                    ax.legend()
                 plt.savefig(f"{save_file_name}.pdf")
             plt.close(fig)
 
@@ -351,20 +432,27 @@ class WeakData:
         times: Union[str, tuple[str, str], list[str]] = None,
         figsize: tuple[int, int] = (8, 8),
         save_file_name: str = None,
+        separate_legend: bool = True,
     ):
-        """draw_efficiency(nps: Union[int, tuple[int, ...], list[int]], fs: Union[str, tuple[str, ...], list[str]], times: Union[str, tuple[str, str], list[str]], figsize: tuple[int, int], save_file_name: str)"""
+        """draw_efficiency(nps: Union[int, tuple[int, ...], list[int]], fs: Union[str, tuple[str, ...], list[str]], times: Union[str, tuple[str, str], list[str]], figsize: tuple[int, int], save_file_name: str, separate_legend: bool)"""
 
         def plot(ax, time, show_ylabel=True):
             y = [1.0] * len(nps)
-            ax.plot(nps, y, color="#AFA938", label="theoretical", linestyle="-.")
+            ax.plot(
+                nps,
+                y,
+                color=SPECIAL_LINE_COLOUR,
+                linewidth=SPECIAL_LINE_WIDTH,
+                label="theoretical",
+                linestyle=SPECIAL_LINE_STYLE,
+            )
             for f in fs:
                 y = efficiency[f][time]
-                ax.plot(nps, y, marker=marker, label=f)
+                ax.plot(nps, y, marker=MARKER, label=f)
             ax.set_xscale("log")
             ax.set_xlabel("CPU cores")
             if show_ylabel:
                 ax.set_ylabel("Efficiency")
-            ax.legend()
 
         if isinstance(nps, int):
             nps = (nps,)
@@ -391,57 +479,35 @@ class WeakData:
                 "font.serif": plt.rcParams["font.serif"],
             },
         )
-        marker = "x"
+        MARKER = "x"
         if isinstance(times, tuple):
             fig, axs = plt.subplots(
                 1, 2, figsize=(figsize[0] * 2, figsize[1]), sharey=True
             )
-            plot(axs[0], times[0], True)
-            plot(axs[1], times[1], False)
+            if save_file_name is None or not separate_legend:
+                for i, (ax, time) in enumerate(zip(axs, times)):
+                    plot(ax, time, i == 0)
+                    ax.legend()
+            else:
+                for i, (ax, time) in enumerate(zip(axs, times)):
+                    plot(ax, time, i == 0)
             if save_file_name is None:
                 plt.show()
             else:
+                if separate_legend:
+                    draw_legend(axs[0], figsize, save_file_name)
                 plt.savefig(f"{save_file_name}.pdf")
             plt.close(fig)
         else:
             fig, ax = plt.subplots(figsize=figsize)
             plot(ax, times)
             if save_file_name is None:
+                ax.legend()
                 plt.show()
             else:
+                if separate_legend:
+                    draw_legend(ax, figsize, save_file_name)
+                else:
+                    ax.legend()
                 plt.savefig(f"{save_file_name}.pdf")
             plt.close(fig)
-
-
-def load_weak_scaling_data(folder: str):
-    """load_weak_scaling_data(folder: str)"""
-
-    def convert_to_dict(d):
-        if isinstance(d, defaultdict):
-            d = {k: convert_to_dict(v) for k, v in sorted(d.items())}
-        return d
-
-    folder = join(folder, "weak_scaling_old")
-    file_name = "summary.json"
-    dicts = defaultdict(list)
-    for nc in listdir(folder):
-        path = join(folder, nc)
-        if not isdir(path):
-            continue
-        node_core = tuple(map(int, nc.strip("()").split(",")))
-        np = int(prod(node_core))
-        for subpath in listdir(path):
-            full_path = join(path, subpath)
-            if not isdir(full_path):
-                continue
-            size_str, part_str, _ = subpath.split("_")
-            size = tuple(map(int, size_str.strip("()").split(",")))
-            part = tuple(map(int, part_str.strip("()").split(",")))
-            with open(join(full_path, file_name)) as f:
-                dicts[np].append(
-                    {**load(f), "node_core": node_core, "part": part, "data_size": size}
-                )
-    data = convert_to_dict(dicts)
-    for k, v in data.items():
-        data[k] = tuple(v)
-    return WeakData(data)
