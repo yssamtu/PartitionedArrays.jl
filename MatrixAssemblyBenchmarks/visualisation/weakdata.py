@@ -322,7 +322,7 @@ class WeakData:
             else:
                 if separate_legend:
                     draw_legend(axs[0], figsize, save_file_name)
-                plt.savefig(f"{save_file_name}.pdf")
+                plt.savefig(f"{save_file_name}.pdf", bbox_inches="tight")
         else:
             fig, ax = plt.subplots(figsize=figsize)
             func(ax, times)
@@ -334,7 +334,7 @@ class WeakData:
                     draw_legend(ax, figsize, save_file_name)
                 else:
                     ax.legend()
-                plt.savefig(f"{save_file_name}.pdf")
+                plt.savefig(f"{save_file_name}.pdf", bbox_inches="tight")
         plt.close(fig)
 
     def draw_speedup(
@@ -409,7 +409,7 @@ class WeakData:
             else:
                 if separate_legend:
                     draw_legend(axs[0], figsize, save_file_name)
-                plt.savefig(f"{save_file_name}.pdf")
+                plt.savefig(f"{save_file_name}.pdf", bbox_inches="tight")
             plt.close(fig)
         else:
             fig, ax = plt.subplots(figsize=figsize)
@@ -422,7 +422,7 @@ class WeakData:
                     draw_legend(ax, figsize, save_file_name)
                 else:
                     ax.legend()
-                plt.savefig(f"{save_file_name}.pdf")
+                plt.savefig(f"{save_file_name}.pdf", bbox_inches="tight")
             plt.close(fig)
 
     def draw_efficiency(
@@ -496,7 +496,7 @@ class WeakData:
             else:
                 if separate_legend:
                     draw_legend(axs[0], figsize, save_file_name)
-                plt.savefig(f"{save_file_name}.pdf")
+                plt.savefig(f"{save_file_name}.pdf", bbox_inches="tight")
             plt.close(fig)
         else:
             fig, ax = plt.subplots(figsize=figsize)
@@ -509,5 +509,5 @@ class WeakData:
                     draw_legend(ax, figsize, save_file_name)
                 else:
                     ax.legend()
-                plt.savefig(f"{save_file_name}.pdf")
+                plt.savefig(f"{save_file_name}.pdf", bbox_inches="tight")
             plt.close(fig)

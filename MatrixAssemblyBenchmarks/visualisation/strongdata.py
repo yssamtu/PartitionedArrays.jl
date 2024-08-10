@@ -411,7 +411,7 @@ class StrongData:
             else:
                 if separate_legend:
                     draw_legend(axs[0], figsize, save_file_name)
-                plt.savefig(f"{save_file_name}.pdf")
+                plt.savefig(f"{save_file_name}.pdf", bbox_inches="tight")
         else:
             fig, ax = plt.subplots(figsize=figsize)
             func(ax, times)
@@ -431,7 +431,7 @@ class StrongData:
                     draw_legend(ax, figsize, save_file_name)
                 else:
                     ax.legend()
-                plt.savefig(f"{save_file_name}.pdf")
+                plt.savefig(f"{save_file_name}.pdf", bbox_inches="tight")
         plt.close(fig)
 
     def draw_complexity(
@@ -508,7 +508,7 @@ class StrongData:
                     if save_file_name is None:
                         plt.show()
                     else:
-                        plt.savefig(f"{save_file_name}_{f}.pdf")
+                        plt.savefig(f"{save_file_name}_{f}.pdf", bbox_inches="tight")
                     plt.close(fig)
             else:
                 for f in fs:
@@ -516,7 +516,7 @@ class StrongData:
                     for i, (ax, time) in enumerate(zip(axs, times)):
                         plot(ax, f, time, i == 0)
                     draw_legend(axs[0], figsize, f"{save_file_name}_{f}")
-                    plt.savefig(f"{save_file_name}_{f}.pdf")
+                    plt.savefig(f"{save_file_name}_{f}.pdf", bbox_inches="tight")
                     plt.close(fig)
         else:
             for f in fs:
@@ -528,7 +528,7 @@ class StrongData:
                 else:
                     if separate_legend:
                         draw_legend(ax, figsize, f"{save_file_name}_{f}")
-                    plt.savefig(f"{save_file_name}_{f}.pdf")
+                    plt.savefig(f"{save_file_name}_{f}.pdf", bbox_inches="tight")
                 plt.close(fig)
 
     def draw_speedup(
@@ -609,7 +609,7 @@ class StrongData:
                 else:
                     if separate_legend:
                         draw_legend(axs[0], figsize, save_file_name)
-                    plt.savefig(f"{save_file_name}.pdf")
+                    plt.savefig(f"{save_file_name}.pdf", bbox_inches="tight")
                 plt.close(fig)
         else:
             for data_size in data_sizes:
@@ -623,7 +623,7 @@ class StrongData:
                         draw_legend(ax, figsize, save_file_name)
                     else:
                         ax.legend()
-                    plt.savefig(f"{save_file_name}.pdf")
+                    plt.savefig(f"{save_file_name}.pdf", bbox_inches="tight")
                 plt.close(fig)
 
     def draw_efficiency(
@@ -698,7 +698,7 @@ class StrongData:
                 else:
                     if separate_legend:
                         draw_legend(axs[0], figsize, save_file_name)
-                    plt.savefig(f"{save_file_name}.pdf")
+                    plt.savefig(f"{save_file_name}.pdf", bbox_inches="tight")
                 plt.close(fig)
         else:
             for data_size in data_sizes:
@@ -712,5 +712,5 @@ class StrongData:
                         draw_legend(ax, figsize, save_file_name)
                     else:
                         ax.legend()
-                    plt.savefig(f"{save_file_name}.pdf")
+                    plt.savefig(f"{save_file_name}.pdf", bbox_inches="tight")
                 plt.close(fig)
