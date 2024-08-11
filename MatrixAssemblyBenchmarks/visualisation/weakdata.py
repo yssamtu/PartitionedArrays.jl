@@ -1,18 +1,18 @@
 from collections import defaultdict
 from json import load
+import matplotlib.pyplot as plt
 from numpy import prod
 from os import listdir
 from os.path import isdir, join
-import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import Union
 
 from common import change_func_name, draw_legend
 from constants import (
-    SPECIAL_LINE_COLOUR,
-    SPECIAL_LINE_WIDTH,
-    SPECIAL_LINE_STYLE,
     FOLDER,
+    SPECIAL_LINE_COLOUR,
+    SPECIAL_LINE_STYLE,
+    SPECIAL_LINE_WIDTH,
 )
 
 

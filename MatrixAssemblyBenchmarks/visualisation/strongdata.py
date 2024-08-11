@@ -1,18 +1,18 @@
 from collections import defaultdict
 from json import load
+import matplotlib.pyplot as plt
 from numpy import prod
 from os import listdir
 from os.path import isdir, join
-import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import Union
 
 from common import change_func_name, draw_legend
 from constants import (
-    SPECIAL_LINE_COLOUR,
-    SPECIAL_LINE_WIDTH,
-    SPECIAL_LINE_STYLE,
     FOLDER,
+    SPECIAL_LINE_COLOUR,
+    SPECIAL_LINE_STYLE,
+    SPECIAL_LINE_WIDTH,
 )
 
 
@@ -65,7 +65,11 @@ class StrongData:
                 part = tuple(map(int, part_str.strip("()").split(",")))
                 with open(join(full_path, file_name)) as f:
                     dicts[size][np].append(
-                        {**change_func_name(load(f)), "node_core": node_core, "part": part}
+                        {
+                            **change_func_name(load(f)),
+                            "node_core": node_core,
+                            "part": part,
+                        }
                     )
         data = convert_to_dict(dicts)
         for v in data.values():
@@ -312,7 +316,11 @@ class StrongData:
                             *(point[f][time] for point in self.data[data_size][np]),
                         )
                     ax.plot(
-                        x, y, color=colors[i], marker=marker, label=f"{f}_{data_size}"#, alpha=0.5
+                        x,
+                        y,
+                        color=colors[i],
+                        marker=marker,
+                        label=f"{f}_{data_size}",  # , alpha=0.5
                     )
             ax.set_xscale("log")
             ax.set_yscale("log")
