@@ -364,6 +364,7 @@ class EachPartData:
                         label=stage,
                         bottom=prev_y_sum,
                         width=widths,
+                        edgecolor="black",
                     )
                     prev_y_sum += y_stage
             ax.set_xscale("log")
